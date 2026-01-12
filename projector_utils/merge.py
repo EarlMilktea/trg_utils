@@ -1,4 +1,8 @@
-"""Group and ungroup array legs."""
+"""Utilities to group and ungroup tensor axes.
+
+This module provides helpers to merge the last ``k`` axes into one or to split
+the last axis into a target shape.
+"""
 
 from __future__ import annotations
 
@@ -14,9 +18,24 @@ if TYPE_CHECKING:
 
 
 def group(arr: npt.ArrayLike, k: int) -> npt.NDArray[Any]:
-    """Merge last k legs.
+    """Merge the last ``k`` axes into one.
 
-    This does the opposite of `ungroup`.
+    Parameters
+    ----------
+    arr
+        Input array.
+    k
+        Number of trailing axes to merge.
+
+    Returns
+    -------
+    numpy.ndarray
+        Array with the last ``k`` axes flattened into a single axis.
+
+    Notes
+    -----
+    The merged axis preserves C-order (row-major) element ordering of the
+    original trailing axes.
     """
     arr = np.ascontiguousarray(arr)
     if not (0 < k <= arr.ndim):
@@ -26,9 +45,24 @@ def group(arr: npt.ArrayLike, k: int) -> npt.NDArray[Any]:
 
 
 def ungroup(arr: npt.ArrayLike, split: Sequence[SupportsIndex]) -> npt.NDArray[Any]:
-    """Split last leg to have shape `split`.
+    """Split the last axis into the given shape.
 
-    This does the opposite of `group`.
+    Parameters
+    ----------
+    arr
+        Input array.
+    split
+        Target shape for the last axis.
+
+    Returns
+    -------
+    numpy.ndarray
+        Array with the last axis reshaped to ``split``.
+
+    Notes
+    -----
+    The split uses C-order (row-major) when expanding the last axis into
+    ``split``.
     """
     arr = np.ascontiguousarray(arr)
     split = tuple(operator.index(i) for i in split)

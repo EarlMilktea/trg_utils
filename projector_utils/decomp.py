@@ -1,4 +1,8 @@
-"""Tensor decompositions."""
+"""Tensor decomposition utilities.
+
+This module provides helpers for tensor SVD and QR decompositions that split
+axes into left and right groups.
+"""
 
 from __future__ import annotations
 
@@ -19,26 +23,29 @@ def tsvd(
 ]:
     """Perform tensor SVD.
 
-    Args
-    ----
-    arr : array-like
+    Parameters
+    ----------
+    arr
         Input array to decompose.
-    nu : int
-        First `nu` legs are included in U and the rest in V.
+    nu
+        First ``nu`` axes are included in ``U`` and the rest in ``V``.
 
     Returns
     -------
-    U : ndarray
-        First `nu` legs of `arr` in the same order + a new leg appended at the end.
-    S : ndarray
+    U : numpy.ndarray
+        First ``nu`` axes of ``arr`` in the same order plus a new axis appended
+        at the end.
+    S : numpy.ndarray
         1D array of singular values.
-    V : ndarray
-        Last `arr.ndim - nu` legs of `arr` in the same order + a new leg appended at the end.
+    V : numpy.ndarray
+        Last ``arr.ndim - nu`` axes of ``arr`` in the same order plus a new axis
+        appended at the end.
 
     Notes
     -----
-    `arr` can be reconstructed by an einsum `"(A)x,x,(B)x->(A)(B)"` where `(A)` and `(B)` \
-        stand for the first `nu` legs and the rest in `arr`, respectively.
+    ``arr`` can be reconstructed by an einsum ``"(A)x,x,(B)x->(A)(B)"`` where
+    ``(A)`` and ``(B)`` stand for the first ``nu`` axes and the rest in ``arr``,
+    respectively.
     """
     arr = np.asarray(arr)
     nuc = arr.ndim - nu
@@ -59,24 +66,27 @@ def tsvd(
 def tqr(arr: npt.ArrayLike, nq: int) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
     """Perform tensor QR decomposition.
 
-    Args
-    ----
-    arr : array-like
+    Parameters
+    ----------
+    arr
         Input array to decompose.
-    nq : int
-        First `nq` legs are included in Q and the rest in R.
+    nq
+        First ``nq`` axes are included in ``Q`` and the rest in ``R``.
 
     Returns
     -------
-    Q : ndarray
-        First `nq` legs of `arr` in the same order + a new leg appended at the end.
-    R : ndarray
-        Last `arr.ndim - nq` legs of `arr` in the same order + a new leg appended at the end.
+    Q : numpy.ndarray
+        First ``nq`` axes of ``arr`` in the same order plus a new axis appended
+        at the end.
+    R : numpy.ndarray
+        Last ``arr.ndim - nq`` axes of ``arr`` in the same order plus a new axis
+        appended at the end.
 
     Notes
     -----
-    `arr` can be reconstructed by an einsum `"(A)x,(B)x->(A)(B)"` where `(A)` and `(B)` \
-        stand for the first `nq` legs and the rest in `arr`, respectively.
+    ``arr`` can be reconstructed by an einsum ``"(A)x,(B)x->(A)(B)"`` where
+    ``(A)`` and ``(B)`` stand for the first ``nq`` axes and the rest in ``arr``,
+    respectively.
     """
     arr = np.asarray(arr)
     nqc = arr.ndim - nq
