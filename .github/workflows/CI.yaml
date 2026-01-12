@@ -25,11 +25,13 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev]"
 
-      - run: |
-          mypy
-          pyright
-          ruff check
-          ruff format --check
+      - run: mypy
+
+      - run: pyright
+
+      - run: ruff check
+
+      - run: ruff format --check
 
   test:
     needs: lint
