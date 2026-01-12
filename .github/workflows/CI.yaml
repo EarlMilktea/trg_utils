@@ -11,7 +11,28 @@ permissions:
   contents: read
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+
+      - run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - run: |
+          mypy
+          pyright
+          ruff check
+          ruff format --check
+
   test:
+    needs: lint
     runs-on: ubuntu-latest
     strategy:
       matrix:
