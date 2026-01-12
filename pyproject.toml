@@ -8,6 +8,9 @@ requires-python = ">=3.10,<3.15"
 dynamic = ["version"]
 dependencies = ["numpy"]
 
+[project.optional-dependencies]
+dev = ["pytest", "pytest-cov"]
+
 [tool.setuptools_scm]
 version_file = "projector_utils/_version.py"
 
