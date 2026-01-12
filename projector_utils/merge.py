@@ -22,7 +22,7 @@ def group(arr: npt.ArrayLike, k: int) -> npt.NDArray[Any]:
     if not (0 < k <= arr.ndim):
         msg = "k must be between 1 and arr.ndim."
         raise ValueError(msg)
-    return arr.reshape([*arr.shape[: arr.ndim - k], -1])
+    return arr.reshape(*arr.shape[: arr.ndim - k], -1)
 
 
 def ungroup(arr: npt.ArrayLike, split: Sequence[SupportsIndex]) -> npt.NDArray[Any]:
@@ -36,4 +36,4 @@ def ungroup(arr: npt.ArrayLike, split: Sequence[SupportsIndex]) -> npt.NDArray[A
     if nl != math.prod(split):
         msg = f"Cannot ungroup: {nl} -> {split}."
         raise ValueError(msg)
-    return arr.reshape([*arr.shape[:-1], *split])
+    return arr.reshape(*arr.shape[:-1], *split)
