@@ -1,12 +1,81 @@
 [build-system]
-requires = ["setuptools>=64", "setuptools_scm>=8"]
+requires = ["setuptools>=80", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "projector_utils"
+license-files = ["LICENSE"]
 requires-python = ">=3.10,<3.15"
 dynamic = ["version"]
-dependencies = []
+dependencies = ["numpy"]
+
+[project.optional-dependencies]
+dev = [
+    "mypy",
+    "pyright",
+    "pytest",
+    "pytest-cov",
+    "ruff",
+]
 
 [tool.setuptools_scm]
 version_file = "projector_utils/_version.py"
+
+[tool.uv]
+cache-keys = [
+  { file = "pyproject.toml" },
+  { git = { commit = true, tags = true } },
+]
+
+[tool.coverage.run]
+omit = ["tests/**", "**/_version.py"]
+
+[tool.mypy]
+files = ["projector_utils", "tests"]
+strict = true
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+preview = true
+select = ["ALL"]
+ignore = [
+  # Conflicts with ruff format
+  "COM812",
+  "COM819",
+  "D206",
+  "D300",
+  "E111",
+  "E114",
+  "E117",
+  "ISC001",
+  "ISC002",
+  "Q000",
+  "Q001",
+  "Q002",
+  "Q003",
+  "W191",
+
+  "CPY",     # flake8-copyright
+  "E74",     # ambiguous-XXX-name
+  "ERA",     # eradicate
+  "S101",    # assert
+  "T20",     # flake8-print
+  "TD",      # flake8-todo
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+  "D10",     # undocumented-XXX
+  "PLR6301", # self not used
+]
+
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
