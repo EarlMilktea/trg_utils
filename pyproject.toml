@@ -19,3 +19,6 @@ cache-keys = [
   { file = "pyproject.toml" },
   { git = { commit = true, tags = true } },
 ]
+
+[tool.coverage.run]
+omit = ["test/**", "**/_version.py"]
