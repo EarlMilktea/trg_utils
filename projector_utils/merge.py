@@ -67,7 +67,7 @@ def ungroup(arr: npt.ArrayLike, split: Sequence[SupportsIndex]) -> npt.NDArray[A
     arr = np.ascontiguousarray(arr)
     split = tuple(operator.index(i) for i in split)
     nl = int(arr.shape[-1])
-    if nl != math.prod(split):
+    if nl != math.prod(split):  # type: ignore[arg-type]
         msg = f"Cannot ungroup: {nl} -> {split}."
         raise ValueError(msg)
     return arr.reshape(*arr.shape[:-1], *split)
