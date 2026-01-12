@@ -10,13 +10,8 @@ dynamic = ["version"]
 dependencies = ["numpy"]
 
 [project.optional-dependencies]
-dev = [
-    "mypy",
-    "pyright",
-    "pytest",
-    "pytest-cov",
-    "ruff",
-]
+dev = ["mypy", "pyright", "pytest", "pytest-cov", "ruff"]
+doc = ["furo", "sphinx"]
 
 [tool.setuptools_scm]
 version_file = "projector_utils/_version.py"
@@ -60,18 +55,22 @@ ignore = [
   "Q003",
   "W191",
 
-  "CPY",     # flake8-copyright
-  "E74",     # ambiguous-XXX-name
-  "ERA",     # eradicate
-  "S101",    # assert
-  "T20",     # flake8-print
-  "TD",      # flake8-todo
+  "CPY",  # flake8-copyright
+  "E74",  # ambiguous-XXX-name
+  "ERA",  # eradicate
+  "S101", # assert
+  "T20",  # flake8-print
+  "TD",   # flake8-todo
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = [
+"tests/**" = [
   "D10",     # undocumented-XXX
   "PLR6301", # self not used
+]
+"docs/**" = [
+  "D10",    # undocumented-XXX
+  "INP001", # implicit namespace package
 ]
 
 [tool.ruff.lint.isort]
