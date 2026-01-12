@@ -32,6 +32,11 @@ def group(arr: npt.ArrayLike, k: int) -> npt.NDArray[Any]:
     numpy.ndarray
         Array with the last ``k`` axes flattened into a single axis.
 
+    Raises
+    ------
+    ValueError
+        If ``k`` is not between 1 and ``arr.ndim``.
+
     Notes
     -----
     The merged axis preserves C-order (row-major) element ordering of the
@@ -58,6 +63,11 @@ def ungroup(arr: npt.ArrayLike, split: Sequence[SupportsIndex]) -> npt.NDArray[A
     -------
     numpy.ndarray
         Array with the last axis reshaped to ``split``.
+
+    Raises
+    ------
+    ValueError
+        If the last axis size does not match ``math.prod(split)``.
 
     Notes
     -----

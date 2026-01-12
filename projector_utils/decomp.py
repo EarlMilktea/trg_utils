@@ -41,6 +41,11 @@ def tsvd(
         Last ``arr.ndim - nu`` axes of ``arr`` in the same order plus a new axis
         appended at the end.
 
+    Raises
+    ------
+    ValueError
+        If ``nu`` is not between 1 and ``arr.ndim - 1``.
+
     Notes
     -----
     ``arr`` can be reconstructed by an einsum ``"(A)x,x,(B)x->(A)(B)"`` where
@@ -81,6 +86,11 @@ def tqr(arr: npt.ArrayLike, nq: int) -> tuple[npt.NDArray[Any], npt.NDArray[Any]
     R : numpy.ndarray
         Last ``arr.ndim - nq`` axes of ``arr`` in the same order plus a new axis
         appended at the end.
+
+    Raises
+    ------
+    ValueError
+        If ``nq`` is not between 1 and ``arr.ndim - 1``.
 
     Notes
     -----
