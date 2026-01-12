@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path("..").resolve()))
 
 project = "projector_utils"
 author = "EarlMilktea"
+copyright = f"2025, {author}"  # noqa: A001
 
 release = importlib.metadata.version(project)
 
