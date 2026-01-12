@@ -54,3 +54,41 @@ def tsvd(
     v = merge.ungroup(vh, arr.shape[nu:])
     v = v.transpose(*range(1, v.ndim), 0)
     return u, s, v
+
+
+def tqr(arr: npt.ArrayLike, nq: int) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
+    """Perform tensor QR decomposition.
+
+    Args
+    ----
+    arr : array-like
+        Input array to decompose.
+    nq : int
+        First `nq` legs are included in Q and the rest in R.
+
+    Returns
+    -------
+    Q : ndarray
+        First `nq` legs of `arr` in the same order + a new leg appended at the end.
+    R : ndarray
+        Last `arr.ndim - nq` legs of `arr` in the same order + a new leg appended at the end.
+
+    Notes
+    -----
+    `arr` can be reconstructed by an einsum `"(A)x,(B)x->(A)(B)"` where `(A)` and `(B)` \
+        stand for the first `nq` legs and the rest in `arr`, respectively.
+    """
+    arr = np.asarray(arr)
+    nqc = arr.ndim - nq
+    if not (nq > 0 and nqc > 0):
+        msg = "nq must be between 1 and arr.ndim - 1."
+        raise ValueError(msg)
+    work = merge.group(arr, nqc)
+    work = work.transpose(-1, *range(work.ndim - 1))
+    work = merge.group(work, nq).T
+    q, r = np.linalg.qr(work, mode="reduced")
+    q = merge.ungroup(q.T, arr.shape[:nq])
+    q = q.transpose(*range(1, q.ndim), 0)
+    r = merge.ungroup(r, arr.shape[nq:])
+    r = r.transpose(*range(1, r.ndim), 0)
+    return q, r
