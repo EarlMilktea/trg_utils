@@ -28,7 +28,7 @@ cache-keys = [
 ]
 
 [tool.coverage.run]
-omit = ["test/**", "**/_version.py"]
+omit = ["tests/**", "**/_version.py"]
 
 [tool.mypy]
 files = ["projector_utils", "tests"]
