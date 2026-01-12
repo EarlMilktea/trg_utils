@@ -18,7 +18,7 @@ def group(arr: npt.ArrayLike, k: int) -> npt.NDArray[Any]:
 
     This does the opposite of `ungroup`.
     """
-    arr = np.asarray(arr, order="C")
+    arr = np.ascontiguousarray(arr)
     if not (0 < k <= arr.ndim):
         msg = "k must be between 1 and arr.ndim."
         raise ValueError(msg)
@@ -30,7 +30,7 @@ def ungroup(arr: npt.ArrayLike, split: Sequence[SupportsIndex]) -> npt.NDArray[A
 
     This does the opposite of `group`.
     """
-    arr = np.asarray(arr, order="C")
+    arr = np.ascontiguousarray(arr)
     split = tuple(operator.index(i) for i in split)
     nl = int(arr.shape[-1])
     if nl != math.prod(split):
