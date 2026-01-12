@@ -24,3 +24,18 @@ class TestGroup:
         np.testing.assert_array_equal(arr0, arr2)
         arr3 = legmerge.group(arr2, k)
         np.testing.assert_array_equal(arr1, arr3)
+
+    @pytest.mark.parametrize("k", [1, 2, 3, 4, 5])
+    def test_group_fortran(self, rng: np.random.Generator, k: int) -> None:
+        shape = (2, 3, 4, 5, 6)
+        arr_c = rng.random(shape)
+        arr_f = np.asfortranarray(arr_c)
+        np.testing.assert_array_equal(legmerge.group(arr_c, k), legmerge.group(arr_f, k))
+
+    @pytest.mark.parametrize("k", [1, 2, 3, 4, 5])
+    def test_upgroup_fortran(self, rng: np.random.Generator, k: int) -> None:
+        shape = (2, 3, 4, 5, 6)
+        arr_c = legmerge.group(rng.random(shape), k)
+        arr_f = np.asfortranarray(arr_c)
+        shape_ = shape[-k:]
+        np.testing.assert_array_equal(legmerge.ungroup(arr_c, shape_), legmerge.ungroup(arr_f, shape_))
