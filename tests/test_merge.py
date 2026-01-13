@@ -25,7 +25,7 @@ class TestGroup:
 
     @pytest.mark.parametrize(
         ("begin", "end"),
-        [(0, 2), (1, 4), (-3, -1), (4, 5), (0, 1)],
+        [(0, 2), (1, 4), (-3, -1), (4, 5), (0, 1), (0, 5)],
     )
     def test_group(self, begin: int, end: int) -> None:
         arr = np.arange(120).reshape(1, 2, 3, 4, 5)
