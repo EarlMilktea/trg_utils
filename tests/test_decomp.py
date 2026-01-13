@@ -1,44 +1,113 @@
 from __future__ import annotations
 
-import string
+import itertools
+from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 from projector_utils import decomp
 
 
-class TestTSVD:
-    def test_tsvd_ng(self) -> None:
-        with pytest.raises(ValueError, match=r".*between 1 and arr.ndim - 1.*"):
-            decomp.tsvd(np.eye(3), 0)
-        with pytest.raises(ValueError, match=r".*between 1 and arr.ndim - 1.*"):
-            decomp.tsvd(np.eye(3), 2)
+def _perm(arr: npt.NDArray[Any], i0: tuple[int, ...], i1: tuple[int, ...]) -> list[int]:
+    d = arr.ndim
+    iperm = [i + d if i < 0 else i for i in itertools.chain(i0, i1)]
+    return [iperm.index(i) for i in range(len(iperm))]
 
-    @pytest.mark.parametrize("nu", [1, 2, 3, 4])
-    def test_tsvd(self, rng: np.random.Generator, nu: int) -> None:
-        shapes = (2, 3, 4, 5, 6)
-        arr = rng.normal(size=shapes)
-        u, s, v = decomp.tsvd(arr, nu)
-        ind_u = "".join(string.ascii_uppercase[:nu])
-        ind_v = "".join(string.ascii_uppercase[nu : arr.ndim])
-        usv = np.asarray(np.einsum(f"{ind_u}x,x,{ind_v}x->{ind_u}{ind_v}", u, s, v))
+
+class TestTSVD:
+    @pytest.mark.parametrize(
+        ("iu", "iv"),
+        [
+            ((0, 3), (1, 2)),
+            ((-4,), (0, 1, 2)),
+            ((0, 1), (2, 3)),
+        ],
+    )
+    def test_tsvd_ng_oob(self, iu: tuple[int, ...], iv: tuple[int, ...]) -> None:
+        with pytest.raises(ValueError, match=r"out of range"):
+            decomp.tsvd(np.zeros((2, 3, 4)), iu, iv)
+
+    @pytest.mark.parametrize(
+        ("iu", "iv"),
+        [
+            ((0, 1), (1, 2)),
+            ((0,), (1,)),
+            ((0, 1, 1), (2,)),
+        ],
+    )
+    def test_tsvd_ng_merged(self, iu: tuple[int, ...], iv: tuple[int, ...]) -> None:
+        with pytest.raises(ValueError, match=r"without overlap"):
+            decomp.tsvd(np.zeros((2, 3, 4)), iu, iv)
+
+    def test_tsvd_ng_empty(self) -> None:
+        with pytest.raises(ValueError, match=r"must not be empty"):
+            decomp.tsvd(np.zeros((2, 3, 4)), (), (0, 1, 2))
+
+        with pytest.raises(ValueError, match=r"must not be empty"):
+            decomp.tsvd(np.zeros((2, 3, 4)), (0, 1, 2), ())
+
+    @pytest.mark.parametrize(
+        ("iu", "iv"),
+        [
+            ((0, 1), (2, 3, 4)),
+            ((1, -1, 2), (3, 0)),
+            ((2,), (1, 3, 0, 4)),
+            ((-2, 0, 1, -1), (2,)),
+        ],
+    )
+    def test_tsvd(self, rng: np.random.Generator, iu: tuple[int, ...], iv: tuple[int, ...]) -> None:
+        arr = rng.normal(size=(1, 2, 3, 4, 5))
+        u, s, v = decomp.tsvd(arr, iu, iv)
+        us = np.tensordot(u, np.diag(s), axes=(-1, -1))
+        usv = np.tensordot(us, v, axes=(-1, -1)).transpose(*_perm(arr, iu, iv))
         np.testing.assert_allclose(arr, usv)
 
 
 class TestTQR:
-    def test_tqr_ng(self) -> None:
-        with pytest.raises(ValueError, match=r".*between 1 and arr.ndim - 1.*"):
-            decomp.tqr(np.eye(3), 0)
-        with pytest.raises(ValueError, match=r".*between 1 and arr.ndim - 1.*"):
-            decomp.tqr(np.eye(3), 2)
+    @pytest.mark.parametrize(
+        ("iq", "ir"),
+        [
+            ((0, 3), (1, 2)),
+            ((-4,), (0, 1, 2)),
+            ((0, 1), (2, 3)),
+        ],
+    )
+    def test_tqr_ng_oob(self, iq: tuple[int, ...], ir: tuple[int, ...]) -> None:
+        with pytest.raises(ValueError, match=r"out of range"):
+            decomp.tqr(np.zeros((2, 3, 4)), iq, ir)
 
-    @pytest.mark.parametrize("nq", [1, 2, 3, 4])
-    def test_tqr(self, rng: np.random.Generator, nq: int) -> None:
-        shapes = (2, 3, 4, 5, 6)
-        arr = rng.normal(size=shapes)
-        q, r = decomp.tqr(arr, nq)
-        ind_q = "".join(string.ascii_uppercase[:nq])
-        ind_r = "".join(string.ascii_uppercase[nq : arr.ndim])
-        qr = np.asarray(np.einsum(f"{ind_q}x,{ind_r}x->{ind_q}{ind_r}", q, r))
+    @pytest.mark.parametrize(
+        ("iq", "ir"),
+        [
+            ((0, 1), (1, 2)),
+            ((0,), (1,)),
+            ((0, 1, 1), (2,)),
+        ],
+    )
+    def test_tqr_ng_merged(self, iq: tuple[int, ...], ir: tuple[int, ...]) -> None:
+        with pytest.raises(ValueError, match=r"without overlap"):
+            decomp.tqr(np.zeros((2, 3, 4)), iq, ir)
+
+    def test_tqr_ng_empty(self) -> None:
+        with pytest.raises(ValueError, match=r"must not be empty"):
+            decomp.tqr(np.zeros((2, 3, 4)), (), (0, 1, 2))
+
+        with pytest.raises(ValueError, match=r"must not be empty"):
+            decomp.tqr(np.zeros((2, 3, 4)), (0, 1, 2), ())
+
+    @pytest.mark.parametrize(
+        ("iq", "ir"),
+        [
+            ((0, 1), (2, 3, 4)),
+            ((1, -1, 2), (3, 0)),
+            ((2, 0), (1, 3, 4)),
+            ((-2, 0, 1), (-1, 2)),
+        ],
+    )
+    def test_tqr(self, rng: np.random.Generator, iq: tuple[int, ...], ir: tuple[int, ...]) -> None:
+        arr = rng.normal(size=(1, 2, 3, 4, 5))
+        q, r = decomp.tqr(arr, iq, ir)
+        qr = np.tensordot(q, r, axes=(-1, -1)).transpose(*_perm(arr, iq, ir))
         np.testing.assert_allclose(arr, qr)
