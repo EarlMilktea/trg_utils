@@ -57,13 +57,13 @@ def tsvd(
     if not (nu > 0 and nuc > 0):
         msg = "nu must be between 1 and arr.ndim - 1."
         raise ValueError(msg)
-    work = merge.group(arr, nuc)
+    work = merge.group(arr, nu, arr.ndim)
     work = work.transpose(-1, *range(work.ndim - 1))
-    work = merge.group(work, nu).T
+    work = merge.group(work, 1, work.ndim).T
     u, s, vh = np.linalg.svd(work, full_matrices=False)
-    u = merge.ungroup(u.T, arr.shape[:nu])
+    u = merge.ungroup(u.T, -1, arr.shape[:nu])
     u = u.transpose(*range(1, u.ndim), 0)
-    v = merge.ungroup(vh, arr.shape[nu:])
+    v = merge.ungroup(vh, -1, arr.shape[nu:])
     v = v.transpose(*range(1, v.ndim), 0)
     return u, s, v
 
@@ -103,12 +103,12 @@ def tqr(arr: npt.ArrayLike, nq: int) -> tuple[npt.NDArray[Any], npt.NDArray[Any]
     if not (nq > 0 and nqc > 0):
         msg = "nq must be between 1 and arr.ndim - 1."
         raise ValueError(msg)
-    work = merge.group(arr, nqc)
+    work = merge.group(arr, nq, arr.ndim)
     work = work.transpose(-1, *range(work.ndim - 1))
-    work = merge.group(work, nq).T
+    work = merge.group(work, 1, work.ndim).T
     q, r = np.linalg.qr(work, mode="reduced")
-    q = merge.ungroup(q.T, arr.shape[:nq])
+    q = merge.ungroup(q.T, -1, arr.shape[:nq])
     q = q.transpose(*range(1, q.ndim), 0)
-    r = merge.ungroup(r, arr.shape[nq:])
+    r = merge.ungroup(r, -1, arr.shape[nq:])
     r = r.transpose(*range(1, r.ndim), 0)
     return q, r
