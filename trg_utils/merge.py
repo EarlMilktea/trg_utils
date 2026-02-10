@@ -41,9 +41,7 @@ def group(arr: npt.ArrayLike, inds: Sequence[SupportsIndex | Sequence[SupportsIn
 
 
 def _ungroup_impl(arr: npt.NDArray[_T], target: int, split: tuple[int, ...]) -> npt.NDArray[_T]:
-    if not (0 <= target < arr.ndim):
-        msg = "Index out of range after normalization."
-        raise ValueError(msg)
+    assert 0 <= target < arr.ndim
     nl = int(arr.shape[target])
     if nl != math.prod(split):
         msg = f"Cannot ungroup: {nl} -> {split}."
