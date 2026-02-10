@@ -12,7 +12,7 @@ copyright = f"2025, {author}"  # noqa: A001
 
 release = importlib.metadata.version(project)
 
-extensions: list[str] = ["sphinx.ext.autodoc"]
+extensions: list[str] = ["sphinx.ext.autodoc", "sphinx.ext.napoleon"]
 templates_path = ["_templates"]
 exclude_patterns: list[str] = []
 
