@@ -37,9 +37,8 @@ def group(arr: npt.ArrayLike, inds: Sequence[SupportsIndex | Sequence[SupportsIn
     arr
         Input array.
     inds
-        Output-axis specification. Each element is either:
-        - a single axis index, copied as-is, or
-        - a sequence of axis indices, merged into one axis.
+        Output-axis specification. Each element is either a single axis index (copied as-is),
+        or a sequence of axis indices (merged into one axis).
         The specification must cover all input axes exactly once.
 
     Returns
@@ -92,7 +91,7 @@ def ungroup(arr: npt.ArrayLike, *instr: tuple[SupportsIndex, Sequence[SupportsIn
     ----------
     arr
         Input array.
-    *instr
+    instr
         One or more ``(target, split)`` pairs.
         ``target`` is the axis to split, and ``split`` is the replacement shape for that axis.
 
