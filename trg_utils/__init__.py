@@ -6,6 +6,6 @@ This package provides various utilities for tensor manipulations, which are slig
 from __future__ import annotations
 
 from trg_utils.decomp import tqr, tsvd
-from trg_utils.merge import _group_impl, _ungroup_impl
+from trg_utils.merge import group, ungroup
 
-__all__ = ["_group_impl", "tqr", "tsvd", "_ungroup_impl"]
+__all__ = ["group", "tqr", "tsvd", "ungroup"]
