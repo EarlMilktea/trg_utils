@@ -5,42 +5,15 @@ This module provides functions to perform tensor decompositions such as SVD and 
 
 from __future__ import annotations
 
-import operator
 from typing import TYPE_CHECKING, Any, SupportsIndex
 
 import numpy as np
 import numpy.typing as npt
 
-from trg_utils import merge
+from trg_utils import _index, merge
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
-
-
-def _index_normalize(d: int, seq: Sequence[SupportsIndex]) -> tuple[int, ...]:
-    def _it() -> Iterator[int]:
-        for i_ in seq:
-            i = operator.index(i_)
-            if i < 0:
-                i += d
-            if not (0 <= i < d):
-                msg = f"Index {i_} is out of range."
-                raise ValueError(msg)
-            yield i
-
-    return tuple(_it())
-
-
-def _index_sanitize(d: int, i0: tuple[int, ...], i1: tuple[int, ...]) -> None:
-    if not (i0 and i1):
-        msg = "Each index must not be empty."
-        raise ValueError(msg)
-    ref = list(range(d))
-    work = [*i0, *i1]
-    work.sort()
-    if work != ref:
-        msg = "Two indices must cover all axes without overlap."
-        raise ValueError(msg)
+    from collections.abc import Sequence
 
 
 def tsvd(
@@ -68,9 +41,9 @@ def tsvd(
     """
     arr = np.asarray(arr)
     d = arr.ndim
-    iu = _index_normalize(d, iu)
-    iv = _index_normalize(d, iv)
-    _index_sanitize(d, iu, iv)
+    iu = _index.normalize(d, iu)
+    iv = _index.normalize(d, iv)
+    _index.assert_span(d, iu, iv)
     work = arr.transpose(*iu, *iv)
     nu = len(iu)
     # merge from back
@@ -108,9 +81,9 @@ def tqr(
     """
     arr = np.asarray(arr)
     d = arr.ndim
-    iq = _index_normalize(d, iq)
-    ir = _index_normalize(d, ir)
-    _index_sanitize(d, iq, ir)
+    iq = _index.normalize(d, iq)
+    ir = _index.normalize(d, ir)
+    _index.assert_span(d, iq, ir)
     work = arr.transpose(*iq, *ir)
     nq = len(iq)
     work = merge._group_impl(work, nq, work.ndim)
