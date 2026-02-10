@@ -41,19 +41,17 @@ def tsvd(
     """
     arr = np.asarray(arr)
     d = arr.ndim
-    iu = _index.normalize(d, iu)
-    iv = _index.normalize(d, iv)
+    iu = _index.normalize(d, _index.materialize(iu))
+    iv = _index.normalize(d, _index.materialize(iv))
     _index.assert_span(d, iu, iv)
     work = arr.transpose(*iu, *iv)
     nu = len(iu)
-    # merge from back
-    work = merge._group_impl(work, nu, work.ndim)
-    work = merge._group_impl(work, 0, nu)
+    work = merge.group(work, (range(nu), range(nu, work.ndim)))
     u, s, vh = np.linalg.svd(work, full_matrices=False)
     su = tuple(arr.shape[i] for i in iu)
     sv = tuple(arr.shape[i] for i in iv)
-    u = merge._ungroup_impl(u, 0, su)
-    v = merge._ungroup_impl(vh, -1, sv)
+    u = merge.ungroup(u, (0, su))
+    v = merge.ungroup(vh, (-1, sv))
     v = v.transpose(*range(1, v.ndim), 0)
     return u, s, v
 
@@ -81,17 +79,16 @@ def tqr(
     """
     arr = np.asarray(arr)
     d = arr.ndim
-    iq = _index.normalize(d, iq)
-    ir = _index.normalize(d, ir)
+    iq = _index.normalize(d, _index.materialize(iq))
+    ir = _index.normalize(d, _index.materialize(ir))
     _index.assert_span(d, iq, ir)
     work = arr.transpose(*iq, *ir)
     nq = len(iq)
-    work = merge._group_impl(work, nq, work.ndim)
-    work = merge._group_impl(work, 0, nq)
+    work = merge.group(work, (range(nq), range(nq, work.ndim)))
     q, r = np.linalg.qr(work, mode="reduced")
     sq = tuple(arr.shape[i] for i in iq)
     sr = tuple(arr.shape[i] for i in ir)
-    q = merge._ungroup_impl(q, 0, sq)
-    r = merge._ungroup_impl(r, -1, sr)
+    q = merge.ungroup(q, (0, sq))
+    r = merge.ungroup(r, (-1, sr))
     r = r.transpose(*range(1, r.ndim), 0)
     return q, r

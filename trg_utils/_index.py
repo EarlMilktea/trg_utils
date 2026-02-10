@@ -7,24 +7,37 @@ from typing import SupportsIndex, TypeVar
 
 
 @typing.overload
-def normalize(d: int, ind: Sequence[SupportsIndex]) -> tuple[int, ...]: ...
+def materialize(ind: Sequence[SupportsIndex]) -> tuple[int, ...]: ...
 
 
 @typing.overload
-def normalize(d: int, ind: SupportsIndex) -> int: ...
+def materialize(ind: SupportsIndex) -> int: ...
 
 
-def normalize(d: int, ind: SupportsIndex | Sequence[SupportsIndex]) -> int | tuple[int, ...]:
-    if isinstance(ind, Sequence):
+def materialize(ind: SupportsIndex | Iterable[SupportsIndex]) -> int | tuple[int, ...]:
+    if isinstance(ind, Iterable):
+        return tuple(materialize(i) for i in ind)
+    return operator.index(ind)
+
+
+@typing.overload
+def normalize(d: int, ind: tuple[int, ...]) -> tuple[int, ...]: ...
+
+
+@typing.overload
+def normalize(d: int, ind: int) -> int: ...
+
+
+def normalize(d: int, ind: int | tuple[int, ...]) -> int | tuple[int, ...]:
+    if isinstance(ind, tuple):
         return tuple(normalize(d, i) for i in ind)
 
-    i = operator.index(ind)
-    if i < 0:
-        i += d
-    if not (0 <= i < d):
+    if ind < 0:
+        ind += d
+    if not (0 <= ind < d):
         msg = f"Index {ind} is out of range."
         raise ValueError(msg)
-    return i
+    return ind
 
 
 _T = TypeVar("_T")

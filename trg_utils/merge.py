@@ -32,7 +32,7 @@ def group(arr: npt.ArrayLike, inds: Sequence[SupportsIndex | Sequence[SupportsIn
 def group(arr: npt.ArrayLike, inds: Sequence[SupportsIndex | Sequence[SupportsIndex]]) -> npt.NDArray[Any]:
     arr = np.asarray(arr)
     d = arr.ndim
-    args = [_index.normalize(d, ind) for ind in inds]
+    args = [_index.normalize(d, _index.materialize(ind)) for ind in inds]
     _index.assert_span(d, *args)
     arr = arr.transpose(*_index.flatten(args))
     shapes = (math.prod(arr.shape[i] for i in ind) if isinstance(ind, tuple) else int(arr.shape[ind]) for ind in args)
@@ -51,17 +51,17 @@ def _ungroup_impl(arr: npt.NDArray[_T], target: int, split: tuple[int, ...]) -> 
 
 
 @typing.overload
-def ungroup(arr: npt.NDArray[_T], *ops: tuple[SupportsIndex, Sequence[SupportsIndex]]) -> npt.NDArray[_T]: ...
+def ungroup(arr: npt.NDArray[_T], *instr: tuple[SupportsIndex, Sequence[SupportsIndex]]) -> npt.NDArray[_T]: ...
 
 
 @typing.overload
-def ungroup(arr: npt.ArrayLike, *ops: tuple[SupportsIndex, Sequence[SupportsIndex]]) -> npt.NDArray[Any]: ...
+def ungroup(arr: npt.ArrayLike, *instr: tuple[SupportsIndex, Sequence[SupportsIndex]]) -> npt.NDArray[Any]: ...
 
 
-def ungroup(arr: npt.ArrayLike, *ops: tuple[SupportsIndex, Sequence[SupportsIndex]]) -> npt.NDArray[Any]:
+def ungroup(arr: npt.ArrayLike, *instr: tuple[SupportsIndex, Sequence[SupportsIndex]]) -> npt.NDArray[Any]:
     arr = np.asarray(arr)
     d = arr.ndim
-    args = [(_index.normalize(d, l), _index.normalize(d, r)) for l, r in ops]
+    args = [(_index.normalize(d, _index.materialize(l)), _index.materialize(r)) for l, r in instr]
     # Reverse sort by index
     args.sort(key=operator.itemgetter(0), reverse=True)
     known: set[int] = set()
