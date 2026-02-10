@@ -30,6 +30,34 @@ def group(arr: npt.ArrayLike, inds: Sequence[SupportsIndex | Sequence[SupportsIn
 
 
 def group(arr: npt.ArrayLike, inds: Sequence[SupportsIndex | Sequence[SupportsIndex]]) -> npt.NDArray[Any]:
+    """Reorder and merge axes according to ``inds``.
+
+    Parameters
+    ----------
+    arr
+        Input array.
+    inds
+        Output-axis specification. Each element is either:
+        - a single axis index, copied as-is, or
+        - a sequence of axis indices, merged into one axis.
+        The specification must cover all input axes exactly once.
+
+    Returns
+    -------
+    numpy.ndarray
+        Array with axes permuted and optionally merged as specified by ``inds``.
+
+    Raises
+    ------
+    ValueError
+        - If an axis index is out of range or duplicated.
+        - If an index group is empty.
+        - If the specification does not cover all input axes.
+
+    Notes
+    -----
+    C-like memory layout is preserved on merging for each group.
+    """  # noqa: DOC502
     arr = np.asarray(arr)
     d = arr.ndim
     args = [_index.normalize(d, _index.materialize(ind)) for ind in inds]
@@ -58,6 +86,31 @@ def ungroup(arr: npt.ArrayLike, *instr: tuple[SupportsIndex, Sequence[SupportsIn
 
 
 def ungroup(arr: npt.ArrayLike, *instr: tuple[SupportsIndex, Sequence[SupportsIndex]]) -> npt.NDArray[Any]:
+    """Split one or more axes according to ``instr``.
+
+    Parameters
+    ----------
+    arr
+        Input array.
+    *instr
+        One or more ``(target, split)`` pairs.
+        ``target`` is the axis to split, and ``split`` is the replacement shape for that axis.
+
+    Returns
+    -------
+    numpy.ndarray
+        Array with each target axis replaced by the corresponding ``split`` shape.
+
+    Raises
+    ------
+    ValueError
+        - If a target axis is out of range or duplicated.
+        - If a target shape is incompatible with ``arr``.
+
+    Notes
+    -----
+    All the instructions are applied in parallel to the original array.
+    """
     arr = np.asarray(arr)
     d = arr.ndim
     args = [(_index.normalize(d, _index.materialize(l)), _index.materialize(r)) for l, r in instr]
