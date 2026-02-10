@@ -61,8 +61,8 @@ def group(arr: npt.ArrayLike, inds: Sequence[SupportsIndex | Sequence[SupportsIn
     d = arr.ndim
     args = [_index.normalize(d, _index.materialize(ind)) for ind in inds]
     _index.assert_span(d, *args)
+    # Reserve the original shape
     s_prev: tuple[int, ...] = arr.shape
-    # Compute before reshape
     shapes = (math.prod(s_prev[i] for i in ind) if isinstance(ind, tuple) else s_prev[ind] for ind in args)
     return arr.transpose(*_index.flatten(args)).reshape(*shapes)
 
