@@ -20,41 +20,14 @@ _T = TypeVar("_T", bound=np.generic)
 
 
 @typing.overload
-def group(arr: npt.NDArray[_T], begin: SupportsIndex, end: SupportsIndex) -> npt.NDArray[_T]: ...
+def _group_impl(arr: npt.NDArray[_T], begin: SupportsIndex, end: SupportsIndex) -> npt.NDArray[_T]: ...
 
 
 @typing.overload
-def group(arr: npt.ArrayLike, begin: SupportsIndex, end: SupportsIndex) -> npt.NDArray[Any]: ...
+def _group_impl(arr: npt.ArrayLike, begin: SupportsIndex, end: SupportsIndex) -> npt.NDArray[Any]: ...
 
 
-def group(arr: npt.ArrayLike, begin: SupportsIndex, end: SupportsIndex) -> npt.NDArray[Any]:
-    """Merge axes in the half-open range ``[begin, end)`` into one.
-
-    Parameters
-    ----------
-    arr
-        Input array.
-    begin
-        First axis index to merge (inclusive).
-    end
-        Axis index after the last axis to merge (exclusive).
-
-    Returns
-    -------
-    numpy.ndarray
-        Array with axes ``begin`` through ``end - 1`` flattened into a single
-        axis.
-
-    Raises
-    ------
-    ValueError
-        If ``begin`` or ``end`` are out of range, or ``begin >= end``.
-
-    Notes
-    -----
-    The merged axis preserves C-order (row-major) element ordering of the
-    merged axes.
-    """
+def _group_impl(arr: npt.ArrayLike, begin: SupportsIndex, end: SupportsIndex) -> npt.NDArray[Any]:
     arr = np.asarray(arr)
     begin = operator.index(begin)
     end = operator.index(end)
@@ -69,41 +42,14 @@ def group(arr: npt.ArrayLike, begin: SupportsIndex, end: SupportsIndex) -> npt.N
 
 
 @typing.overload
-def ungroup(arr: npt.NDArray[_T], target: SupportsIndex, split: Sequence[SupportsIndex]) -> npt.NDArray[_T]: ...
+def _ungroup_impl(arr: npt.NDArray[_T], target: SupportsIndex, split: Sequence[SupportsIndex]) -> npt.NDArray[_T]: ...
 
 
 @typing.overload
-def ungroup(arr: npt.ArrayLike, target: SupportsIndex, split: Sequence[SupportsIndex]) -> npt.NDArray[Any]: ...
+def _ungroup_impl(arr: npt.ArrayLike, target: SupportsIndex, split: Sequence[SupportsIndex]) -> npt.NDArray[Any]: ...
 
 
-def ungroup(arr: npt.ArrayLike, target: SupportsIndex, split: Sequence[SupportsIndex]) -> npt.NDArray[Any]:
-    """Split the specified axis into the given shape.
-
-    Parameters
-    ----------
-    arr
-        Input array.
-    target
-        Axis index to split.
-    split
-        Target shape for the axis being split.
-
-    Returns
-    -------
-    numpy.ndarray
-        Array with the target axis reshaped to ``split``.
-
-    Raises
-    ------
-    ValueError
-        If ``target`` is out of range, or the target axis size does not match
-        ``math.prod(split)``.
-
-    Notes
-    -----
-    The split uses C-order (row-major) when expanding the target axis into
-    ``split``.
-    """
+def _ungroup_impl(arr: npt.ArrayLike, target: SupportsIndex, split: Sequence[SupportsIndex]) -> npt.NDArray[Any]:
     arr = np.asarray(arr)
     target = operator.index(target)
     if target < 0:
