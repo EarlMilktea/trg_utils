@@ -32,10 +32,11 @@ def normalize(d: int, ind: int | tuple[int, ...]) -> int | tuple[int, ...]:
     if isinstance(ind, tuple):
         return tuple(normalize(d, i) for i in ind)
 
+    orig = ind
     if ind < 0:
         ind += d
     if not (0 <= ind < d):
-        msg = f"Index {ind} is out of range."
+        msg = f"Index {orig} is out of range."
         raise ValueError(msg)
     return ind
 
