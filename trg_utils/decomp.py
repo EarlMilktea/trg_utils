@@ -5,15 +5,13 @@ This module provides functions to perform tensor decompositions such as SVD and 
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, SupportsIndex
+from collections.abc import Sequence
+from typing import Any, SupportsIndex
 
 import numpy as np
 import numpy.typing as npt
 
 from trg_utils import _index, merge
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 
 def tsvd(
@@ -32,11 +30,11 @@ def tsvd(
 
     Returns
     -------
-    U : numpy.ndarray
+    U : `numpy.ndarray`
         Axes from ``iu`` in the same order plus a new axis appended at the end.
-    S : numpy.ndarray
+    S : `numpy.ndarray`
         1D array of singular values.
-    V : numpy.ndarray
+    V : `numpy.ndarray`
         Axes from ``iv`` in the same order plus a new axis appended at the end.
 
     Raises
@@ -78,9 +76,9 @@ def tqr(
 
     Returns
     -------
-    Q : numpy.ndarray
+    Q : `numpy.ndarray`
         Axes from ``iq`` in the same order plus a new axis appended at the end.
-    R : numpy.ndarray
+    R : `numpy.ndarray`
         Axes from ``ir`` in the same order plus a new axis appended at the end.
 
     Raises
@@ -118,9 +116,9 @@ def hosvd(arr: npt.ArrayLike, iu: Sequence[SupportsIndex]) -> tuple[npt.NDArray[
 
     Returns
     -------
-    S : numpy.ndarray
+    S : `numpy.ndarray`
         1D array of singular values.
-    U : numpy.ndarray
+    U : `numpy.ndarray`
         Axes from ``iu`` in the same order plus a new axis appended at the end.
 
     Raises

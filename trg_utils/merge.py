@@ -8,15 +8,13 @@ from __future__ import annotations
 import math
 import operator
 import typing
-from typing import TYPE_CHECKING, Any, SupportsIndex, TypeVar
+from collections.abc import Sequence
+from typing import Any, SupportsIndex, TypeVar
 
 import numpy as np
 import numpy.typing as npt
 
 from trg_utils import _index
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 _T = TypeVar("_T", bound=np.generic)
 
@@ -43,7 +41,7 @@ def group(arr: npt.ArrayLike, inds: Sequence[SupportsIndex | Sequence[SupportsIn
 
     Returns
     -------
-    numpy.ndarray
+    `numpy.ndarray`
         Array with axes permuted and optionally merged as specified by ``inds``.
 
     Raises
@@ -97,7 +95,7 @@ def ungroup(arr: npt.ArrayLike, *instr: tuple[SupportsIndex, Sequence[SupportsIn
 
     Returns
     -------
-    numpy.ndarray
+    `numpy.ndarray`
         Array with each target axis replaced by the corresponding ``split`` shape.
 
     Raises
