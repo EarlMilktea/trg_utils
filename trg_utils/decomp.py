@@ -5,42 +5,13 @@ This module provides functions to perform tensor decompositions such as SVD and 
 
 from __future__ import annotations
 
-import operator
-from typing import TYPE_CHECKING, Any, SupportsIndex
+from collections.abc import Sequence
+from typing import Any, SupportsIndex
 
 import numpy as np
 import numpy.typing as npt
 
-from trg_utils import merge
-
-if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
-
-
-def _index_normalize(d: int, seq: Sequence[SupportsIndex]) -> tuple[int, ...]:
-    def _it() -> Iterator[int]:
-        for i_ in seq:
-            i = operator.index(i_)
-            if i < 0:
-                i += d
-            if not (0 <= i < d):
-                msg = f"Index {i_} is out of range."
-                raise ValueError(msg)
-            yield i
-
-    return tuple(_it())
-
-
-def _index_sanitize(d: int, i0: tuple[int, ...], i1: tuple[int, ...]) -> None:
-    if not (i0 and i1):
-        msg = "Each index must not be empty."
-        raise ValueError(msg)
-    ref = list(range(d))
-    work = [*i0, *i1]
-    work.sort()
-    if work != ref:
-        msg = "Two indices must cover all axes without overlap."
-        raise ValueError(msg)
+from trg_utils import _index, merge
 
 
 def tsvd(
@@ -59,28 +30,32 @@ def tsvd(
 
     Returns
     -------
-    U : numpy.ndarray
+    U : `numpy.ndarray`
         Axes from ``iu`` in the same order plus a new axis appended at the end.
-    S : numpy.ndarray
+    S : `numpy.ndarray`
         1D array of singular values.
-    V : numpy.ndarray
+    V : `numpy.ndarray`
         Axes from ``iv`` in the same order plus a new axis appended at the end.
-    """
+
+    Raises
+    ------
+    ValueError
+        If either ``iu`` or ``iv`` is empty.
+        If any axis is missing or duplicated in ``iu`` and ``iv``.
+    """  # noqa: DOC502
     arr = np.asarray(arr)
     d = arr.ndim
-    iu = _index_normalize(d, iu)
-    iv = _index_normalize(d, iv)
-    _index_sanitize(d, iu, iv)
+    iu = _index.normalize(d, _index.materialize(iu))
+    iv = _index.normalize(d, _index.materialize(iv))
+    _index.assert_span(d, iu, iv)
     work = arr.transpose(*iu, *iv)
     nu = len(iu)
-    # merge from back
-    work = merge.group(work, nu, work.ndim)
-    work = merge.group(work, 0, nu)
+    work = merge.group(work, (range(nu), range(nu, work.ndim)))
     u, s, vh = np.linalg.svd(work, full_matrices=False)
     su = tuple(arr.shape[i] for i in iu)
     sv = tuple(arr.shape[i] for i in iv)
-    u = merge.ungroup(u, 0, su)
-    v = merge.ungroup(vh, -1, sv)
+    u = merge.ungroup(u, (0, su))
+    v = merge.ungroup(vh, (-1, sv))
     v = v.transpose(*range(1, v.ndim), 0)
     return u, s, v
 
@@ -101,24 +76,71 @@ def tqr(
 
     Returns
     -------
-    Q : numpy.ndarray
+    Q : `numpy.ndarray`
         Axes from ``iq`` in the same order plus a new axis appended at the end.
-    R : numpy.ndarray
+    R : `numpy.ndarray`
         Axes from ``ir`` in the same order plus a new axis appended at the end.
-    """
+
+    Raises
+    ------
+    ValueError
+        If either ``iq`` or ``ir`` is empty.
+        If any axis is missing or duplicated in ``iq`` and ``ir``.
+    """  # noqa: DOC502
     arr = np.asarray(arr)
     d = arr.ndim
-    iq = _index_normalize(d, iq)
-    ir = _index_normalize(d, ir)
-    _index_sanitize(d, iq, ir)
+    iq = _index.normalize(d, _index.materialize(iq))
+    ir = _index.normalize(d, _index.materialize(ir))
+    _index.assert_span(d, iq, ir)
     work = arr.transpose(*iq, *ir)
     nq = len(iq)
-    work = merge.group(work, nq, work.ndim)
-    work = merge.group(work, 0, nq)
+    work = merge.group(work, (range(nq), range(nq, work.ndim)))
     q, r = np.linalg.qr(work, mode="reduced")
     sq = tuple(arr.shape[i] for i in iq)
     sr = tuple(arr.shape[i] for i in ir)
-    q = merge.ungroup(q, 0, sq)
-    r = merge.ungroup(r, -1, sr)
+    q = merge.ungroup(q, (0, sq))
+    r = merge.ungroup(r, (-1, sr))
     r = r.transpose(*range(1, r.ndim), 0)
     return q, r
+
+
+def hosvd(arr: npt.ArrayLike, iu: Sequence[SupportsIndex]) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
+    """Perform higher-order SVD.
+
+    Parameters
+    ----------
+    arr
+        Input array to decompose.
+    iu
+        Axis indices to be included in ``U``.
+
+    Returns
+    -------
+    S : `numpy.ndarray`
+        1D array of singular values.
+    U : `numpy.ndarray`
+        Axes from ``iu`` in the same order plus a new axis appended at the end.
+
+    Raises
+    ------
+    ValueError
+        If no axes are excluded from ``iu``. See :func:`tsvd` for more details.
+
+    Notes
+    -----
+    This function is similar to :func:`tsvd`, but it computes only the ``U`` matrix using HOSVD.
+    """
+    arr = np.asarray(arr)
+    d = arr.ndim
+    iu = _index.normalize(d, _index.materialize(iu))
+    _index.assert_allunique(iu)
+    iv = tuple(i for i in range(d) if i not in iu)
+    if not iv:
+        msg = "At least one axis must be excluded from 'iu'."
+        raise ValueError(msg)
+    work = merge.group(arr, (iu, iv))
+    vals, vecs = np.linalg.eigh(work @ work.T)
+    perm = np.argsort(vals)[::-1]
+    vals = np.maximum(vals, 0)
+    su = tuple(arr.shape[i] for i in iu)
+    return np.sqrt(vals[perm]), merge.ungroup(vecs[:, perm], (0, su))

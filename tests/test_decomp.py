@@ -25,7 +25,7 @@ class TestTSVD:
             ((0, 1), (2, 3)),
         ],
     )
-    def test_tsvd_ng_oob(self, iu: tuple[int, ...], iv: tuple[int, ...]) -> None:
+    def test_ng_oob(self, iu: tuple[int, ...], iv: tuple[int, ...]) -> None:
         with pytest.raises(ValueError, match=r"out of range"):
             decomp.tsvd(np.zeros((2, 3, 4)), iu, iv)
 
@@ -37,11 +37,11 @@ class TestTSVD:
             ((0, 1, 1), (2,)),
         ],
     )
-    def test_tsvd_ng_merged(self, iu: tuple[int, ...], iv: tuple[int, ...]) -> None:
+    def test_ng_overlap(self, iu: tuple[int, ...], iv: tuple[int, ...]) -> None:
         with pytest.raises(ValueError, match=r"without overlap"):
             decomp.tsvd(np.zeros((2, 3, 4)), iu, iv)
 
-    def test_tsvd_ng_empty(self) -> None:
+    def test_ng_empty(self) -> None:
         with pytest.raises(ValueError, match=r"must not be empty"):
             decomp.tsvd(np.zeros((2, 3, 4)), (), (0, 1, 2))
 
@@ -74,7 +74,7 @@ class TestTQR:
             ((0, 1), (2, 3)),
         ],
     )
-    def test_tqr_ng_oob(self, iq: tuple[int, ...], ir: tuple[int, ...]) -> None:
+    def test_ng_oob(self, iq: tuple[int, ...], ir: tuple[int, ...]) -> None:
         with pytest.raises(ValueError, match=r"out of range"):
             decomp.tqr(np.zeros((2, 3, 4)), iq, ir)
 
@@ -86,11 +86,11 @@ class TestTQR:
             ((0, 1, 1), (2,)),
         ],
     )
-    def test_tqr_ng_merged(self, iq: tuple[int, ...], ir: tuple[int, ...]) -> None:
+    def test_ng_overlap(self, iq: tuple[int, ...], ir: tuple[int, ...]) -> None:
         with pytest.raises(ValueError, match=r"without overlap"):
             decomp.tqr(np.zeros((2, 3, 4)), iq, ir)
 
-    def test_tqr_ng_empty(self) -> None:
+    def test_ng_empty(self) -> None:
         with pytest.raises(ValueError, match=r"must not be empty"):
             decomp.tqr(np.zeros((2, 3, 4)), (), (0, 1, 2))
 
@@ -111,3 +111,49 @@ class TestTQR:
         q, r = decomp.tqr(arr, iq, ir)
         qr = np.tensordot(q, r, axes=(-1, -1)).transpose(*_perm(arr, iq, ir))
         np.testing.assert_allclose(arr, qr)
+
+
+class TestHOSVD:
+    @pytest.mark.parametrize(
+        "iu",
+        [
+            (0, 3),
+            (-4,),
+        ],
+    )
+    def test_ng_oob(self, iu: tuple[int, ...]) -> None:
+        with pytest.raises(ValueError, match=r"out of range"):
+            decomp.hosvd(np.zeros((2, 3, 4)), iu)
+
+    def test_ng_overlap(self) -> None:
+        with pytest.raises(ValueError, match=r"must be unique"):
+            decomp.hosvd(np.zeros((2, 3, 4)), (0, 1, 1))
+
+    def test_ng_empty(self) -> None:
+        with pytest.raises(ValueError, match=r"must not be empty"):
+            decomp.hosvd(np.zeros((2, 3, 4)), ())
+
+        with pytest.raises(ValueError, match=r"must be excluded"):
+            decomp.hosvd(np.zeros((2, 3, 4)), (2, 1, 0))
+
+    @pytest.mark.parametrize(
+        ("iu", "iv"),
+        [
+            ((0, 1), (2, 3, 4)),
+            ((1, -1, 2), (3, 0)),
+            ((2,), (1, 3, 0, 4)),
+            ((-2, 0, 1, -1), (2,)),
+        ],
+    )
+    def test_hosvd(self, rng: np.random.Generator, iu: tuple[int, ...], iv: tuple[int, ...]) -> None:
+        arr = rng.normal(size=(1, 2, 3, 4, 5))
+        s, u = decomp.hosvd(arr, iu)
+        u_, s_, _ = decomp.tsvd(arr, iu, iv)
+        n = min(s.size, s_.size)
+        np.testing.assert_allclose(s[:n], s_[:n])
+        for i in range(n):
+            vi = u[..., i]
+            vi *= np.sign(vi.sum())
+            vi_ = u_[..., i]
+            vi_ *= np.sign(vi_.sum())
+            np.testing.assert_allclose(vi, vi_)

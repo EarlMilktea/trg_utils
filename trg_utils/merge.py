@@ -8,112 +8,116 @@ from __future__ import annotations
 import math
 import operator
 import typing
-from typing import TYPE_CHECKING, Any, SupportsIndex, TypeVar
+from collections.abc import Sequence
+from typing import Any, SupportsIndex, TypeVar
 
 import numpy as np
 import numpy.typing as npt
 
-if TYPE_CHECKING:
-    from collections.abc import Sequence
+from trg_utils import _index
 
 _T = TypeVar("_T", bound=np.generic)
 
 
 @typing.overload
-def group(arr: npt.NDArray[_T], begin: SupportsIndex, end: SupportsIndex) -> npt.NDArray[_T]: ...
+def group(arr: npt.NDArray[_T], inds: Sequence[SupportsIndex | Sequence[SupportsIndex]]) -> npt.NDArray[_T]: ...
 
 
 @typing.overload
-def group(arr: npt.ArrayLike, begin: SupportsIndex, end: SupportsIndex) -> npt.NDArray[Any]: ...
+def group(arr: npt.ArrayLike, inds: Sequence[SupportsIndex | Sequence[SupportsIndex]]) -> npt.NDArray[Any]: ...
 
 
-def group(arr: npt.ArrayLike, begin: SupportsIndex, end: SupportsIndex) -> npt.NDArray[Any]:
-    """Merge axes in the half-open range ``[begin, end)`` into one.
+def group(arr: npt.ArrayLike, inds: Sequence[SupportsIndex | Sequence[SupportsIndex]]) -> npt.NDArray[Any]:
+    """Reorder and merge axes according to ``inds``.
 
     Parameters
     ----------
     arr
         Input array.
-    begin
-        First axis index to merge (inclusive).
-    end
-        Axis index after the last axis to merge (exclusive).
+    inds
+        Output-axis specification. Each element is either a single axis index (copied as-is),
+        or a sequence of axis indices (merged into one axis).
+        The specification must cover all input axes exactly once.
 
     Returns
     -------
-    numpy.ndarray
-        Array with axes ``begin`` through ``end - 1`` flattened into a single
-        axis.
+    `numpy.ndarray`
+        Array with axes permuted and optionally merged as specified by ``inds``.
 
     Raises
     ------
     ValueError
-        If ``begin`` or ``end`` are out of range, or ``begin >= end``.
+        If an axis index is out of range or duplicated.
+        If an index group is empty.
+        If the specification does not cover all input axes.
 
     Notes
     -----
-    The merged axis preserves C-order (row-major) element ordering of the
-    merged axes.
-    """
+    C-like memory layout is preserved on merging for each group.
+    """  # noqa: DOC502
     arr = np.asarray(arr)
-    begin = operator.index(begin)
-    end = operator.index(end)
-    if begin < 0:
-        begin += arr.ndim
-    if end < 0:
-        end += arr.ndim
-    if not (0 <= begin < end <= arr.ndim):
-        msg = "begin and end must satisfy 0 <= begin < end <= arr.ndim after normalization."
-        raise ValueError(msg)
-    return arr.reshape(*arr.shape[:begin], -1, *arr.shape[end:])
+    d = arr.ndim
+    args = [_index.normalize(d, _index.materialize(ind)) for ind in inds]
+    _index.assert_span(d, *args)
+    # Preserve the original shape
+    s_prev: tuple[int, ...] = arr.shape
+    shapes = (math.prod(s_prev[i] for i in ind) if isinstance(ind, tuple) else s_prev[ind] for ind in args)
+    return arr.transpose(*_index.flatten(args)).reshape(*shapes)
 
 
-@typing.overload
-def ungroup(arr: npt.NDArray[_T], target: SupportsIndex, split: Sequence[SupportsIndex]) -> npt.NDArray[_T]: ...
-
-
-@typing.overload
-def ungroup(arr: npt.ArrayLike, target: SupportsIndex, split: Sequence[SupportsIndex]) -> npt.NDArray[Any]: ...
-
-
-def ungroup(arr: npt.ArrayLike, target: SupportsIndex, split: Sequence[SupportsIndex]) -> npt.NDArray[Any]:
-    """Split the specified axis into the given shape.
-
-    Parameters
-    ----------
-    arr
-        Input array.
-    target
-        Axis index to split.
-    split
-        Target shape for the axis being split.
-
-    Returns
-    -------
-    numpy.ndarray
-        Array with the target axis reshaped to ``split``.
-
-    Raises
-    ------
-    ValueError
-        If ``target`` is out of range, or the target axis size does not match
-        ``math.prod(split)``.
-
-    Notes
-    -----
-    The split uses C-order (row-major) when expanding the target axis into
-    ``split``.
-    """
-    arr = np.asarray(arr)
-    target = operator.index(target)
-    if target < 0:
-        target += arr.ndim
-    if not (0 <= target < arr.ndim):
-        msg = "target must be between 0 and arr.ndim - 1 after normalization."
-        raise ValueError(msg)
-    split = tuple(operator.index(i) for i in split)
+def _ungroup_impl(arr: npt.NDArray[_T], target: int, split: tuple[int, ...]) -> npt.NDArray[_T]:
+    assert 0 <= target < arr.ndim
     nl = int(arr.shape[target])
-    if nl != math.prod(split):  # type: ignore[arg-type]
+    if nl != math.prod(split):
         msg = f"Cannot ungroup: {nl} -> {split}."
         raise ValueError(msg)
     return arr.reshape(*arr.shape[:target], *split, *arr.shape[target + 1 :])
+
+
+@typing.overload
+def ungroup(arr: npt.NDArray[_T], *instr: tuple[SupportsIndex, Sequence[SupportsIndex]]) -> npt.NDArray[_T]: ...
+
+
+@typing.overload
+def ungroup(arr: npt.ArrayLike, *instr: tuple[SupportsIndex, Sequence[SupportsIndex]]) -> npt.NDArray[Any]: ...
+
+
+def ungroup(arr: npt.ArrayLike, *instr: tuple[SupportsIndex, Sequence[SupportsIndex]]) -> npt.NDArray[Any]:
+    """Split one or more axes according to ``instr``.
+
+    Parameters
+    ----------
+    arr
+        Input array.
+    instr
+        One or more ``(target, split)`` pairs.
+        ``target`` is the axis to split, and ``split`` is the replacement shape for that axis.
+
+    Returns
+    -------
+    `numpy.ndarray`
+        Array with each target axis replaced by the corresponding ``split`` shape.
+
+    Raises
+    ------
+    ValueError
+        If a target axis is out of range or duplicated.
+        If a target shape is incompatible with ``arr``.
+
+    Notes
+    -----
+    All the instructions are applied in parallel to the original array.
+    """
+    arr = np.asarray(arr)
+    d = arr.ndim
+    args = [(_index.normalize(d, _index.materialize(l)), _index.materialize(r)) for l, r in instr]
+    # Reverse sort by index
+    args.sort(key=operator.itemgetter(0), reverse=True)
+    known: set[int] = set()
+    for i, split in args:
+        if i in known:
+            msg = "ops must not overlap."
+            raise ValueError(msg)
+        known.add(i)
+        arr = _ungroup_impl(arr, i, split)
+    return arr
