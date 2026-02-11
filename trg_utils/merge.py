@@ -49,9 +49,9 @@ def group(arr: npt.ArrayLike, inds: Sequence[SupportsIndex | Sequence[SupportsIn
     Raises
     ------
     ValueError
-        - If an axis index is out of range or duplicated.
-        - If an index group is empty.
-        - If the specification does not cover all input axes.
+        If an axis index is out of range or duplicated.
+        If an index group is empty.
+        If the specification does not cover all input axes.
 
     Notes
     -----
@@ -103,8 +103,8 @@ def ungroup(arr: npt.ArrayLike, *instr: tuple[SupportsIndex, Sequence[SupportsIn
     Raises
     ------
     ValueError
-        - If a target axis is out of range or duplicated.
-        - If a target shape is incompatible with ``arr``.
+        If a target axis is out of range or duplicated.
+        If a target shape is incompatible with ``arr``.
 
     Notes
     -----

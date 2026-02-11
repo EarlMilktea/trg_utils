@@ -38,7 +38,13 @@ def tsvd(
         1D array of singular values.
     V : numpy.ndarray
         Axes from ``iv`` in the same order plus a new axis appended at the end.
-    """
+
+    Raises
+    ------
+    ValueError
+        If either ``iu`` or ``iv`` is empty.
+        If any axis is missing or duplicated in ``iu`` and ``iv``.
+    """  # noqa: DOC502
     arr = np.asarray(arr)
     d = arr.ndim
     iu = _index.normalize(d, _index.materialize(iu))
@@ -76,7 +82,13 @@ def tqr(
         Axes from ``iq`` in the same order plus a new axis appended at the end.
     R : numpy.ndarray
         Axes from ``ir`` in the same order plus a new axis appended at the end.
-    """
+
+    Raises
+    ------
+    ValueError
+        If either ``iq`` or ``ir`` is empty.
+        If any axis is missing or duplicated in ``iq`` and ``ir``.
+    """  # noqa: DOC502
     arr = np.asarray(arr)
     d = arr.ndim
     iq = _index.normalize(d, _index.materialize(iq))
