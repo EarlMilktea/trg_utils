@@ -136,7 +136,7 @@ def hosvd(arr: npt.ArrayLike, iu: Sequence[SupportsIndex]) -> tuple[npt.NDArray[
     _index.assert_allunique(iu)
     iv = tuple(i for i in range(d) if i not in iu)
     if not iv:
-        msg = "At least one axis must be excluded from 'iu' to perform HOSVD."
+        msg = "At least one axis must be excluded from 'iu'."
         raise ValueError(msg)
     work = merge.group(arr, (iu, iv))
     vals, vecs = np.linalg.eigh(work @ work.T)
