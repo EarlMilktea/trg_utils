@@ -25,7 +25,7 @@ class TestTSVD:
             ((0, 1), (2, 3)),
         ],
     )
-    def test_tsvd_ng_oob(self, iu: tuple[int, ...], iv: tuple[int, ...]) -> None:
+    def test_ng_oob(self, iu: tuple[int, ...], iv: tuple[int, ...]) -> None:
         with pytest.raises(ValueError, match=r"out of range"):
             decomp.tsvd(np.zeros((2, 3, 4)), iu, iv)
 
@@ -37,11 +37,11 @@ class TestTSVD:
             ((0, 1, 1), (2,)),
         ],
     )
-    def test_tsvd_ng_merged(self, iu: tuple[int, ...], iv: tuple[int, ...]) -> None:
+    def test_ng_overlap(self, iu: tuple[int, ...], iv: tuple[int, ...]) -> None:
         with pytest.raises(ValueError, match=r"without overlap"):
             decomp.tsvd(np.zeros((2, 3, 4)), iu, iv)
 
-    def test_tsvd_ng_empty(self) -> None:
+    def test_ng_empty(self) -> None:
         with pytest.raises(ValueError, match=r"must not be empty"):
             decomp.tsvd(np.zeros((2, 3, 4)), (), (0, 1, 2))
 
@@ -74,7 +74,7 @@ class TestTQR:
             ((0, 1), (2, 3)),
         ],
     )
-    def test_tqr_ng_oob(self, iq: tuple[int, ...], ir: tuple[int, ...]) -> None:
+    def test_ng_oob(self, iq: tuple[int, ...], ir: tuple[int, ...]) -> None:
         with pytest.raises(ValueError, match=r"out of range"):
             decomp.tqr(np.zeros((2, 3, 4)), iq, ir)
 
@@ -86,11 +86,11 @@ class TestTQR:
             ((0, 1, 1), (2,)),
         ],
     )
-    def test_tqr_ng_merged(self, iq: tuple[int, ...], ir: tuple[int, ...]) -> None:
+    def test_ng_overlap(self, iq: tuple[int, ...], ir: tuple[int, ...]) -> None:
         with pytest.raises(ValueError, match=r"without overlap"):
             decomp.tqr(np.zeros((2, 3, 4)), iq, ir)
 
-    def test_tqr_ng_empty(self) -> None:
+    def test_ng_empty(self) -> None:
         with pytest.raises(ValueError, match=r"must not be empty"):
             decomp.tqr(np.zeros((2, 3, 4)), (), (0, 1, 2))
 
