@@ -51,6 +51,13 @@ def flatten(it: Iterable[_T | Iterable[_T]]) -> Iterator[_T]:
             yield x
 
 
+def assert_allunique(*inds: int | tuple[int, ...]) -> None:
+    work = list(flatten(inds))
+    if len(work) != len(set(work)):
+        msg = "Indices must be unique."
+        raise ValueError(msg)
+
+
 def assert_span(d: int, *inds: int | tuple[int, ...]) -> None:
     if any(ind == () for ind in inds):
         msg = "Each index must not be empty."

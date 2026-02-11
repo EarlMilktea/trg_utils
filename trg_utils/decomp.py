@@ -92,3 +92,45 @@ def tqr(
     r = merge.ungroup(r, (-1, sr))
     r = r.transpose(*range(1, r.ndim), 0)
     return q, r
+
+
+def hosvd(arr: npt.ArrayLike, iu: Sequence[SupportsIndex]) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
+    """Perform higher-order SVD.
+
+    Parameters
+    ----------
+    arr
+        Input array to decompose.
+    iu
+        Axis indices to be included in ``U``.
+
+    Returns
+    -------
+    S : numpy.ndarray
+        1D array of singular values.
+    U : numpy.ndarray
+        Axes from ``iu`` in the same order plus a new axis appended at the end.
+
+    Raises
+    ------
+    ValueError
+        If all axes are included in ``iu``. See :func:`tsvd` for more details.
+
+    Notes
+    -----
+    This function is similar to :func:`tsvd`, but it computes only the ``U`` matrix using HOSVD.
+    """
+    arr = np.asarray(arr)
+    d = arr.ndim
+    iu = _index.normalize(d, _index.materialize(iu))
+    _index.assert_allunique(iu)
+    iv = tuple(i for i in range(d) if i not in iu)
+    if not iv:
+        msg = "At least one axis must be excluded from 'iu' to perform HOSVD."
+        raise ValueError(msg)
+    work = merge.group(arr, (iu, iv))
+    vals, vecs = np.linalg.eigh(work @ work.T)
+    perm = np.argsort(vals)[::-1]
+    vals = np.maximum(vals, 0)
+    su = tuple(arr.shape[i] for i in iu)
+    return np.sqrt(vals[perm]), merge.ungroup(vecs[:, perm], (0, su))
