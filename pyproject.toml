@@ -60,6 +60,7 @@ ignore = [
   "ERA",  # eradicate
   "S101", # assert
   "T20",  # flake8-print
+  "TC",   # flake8-type-checking
   "TD",   # flake8-todo
 ]
 
