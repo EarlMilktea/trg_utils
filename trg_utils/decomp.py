@@ -124,7 +124,7 @@ def hosvd(arr: npt.ArrayLike, iu: Sequence[SupportsIndex]) -> tuple[npt.NDArray[
     Raises
     ------
     ValueError
-        If all axes are included in ``iu``. See :func:`tsvd` for more details.
+        If no axes are excluded from ``iu``. See :func:`tsvd` for more details.
 
     Notes
     -----
