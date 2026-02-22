@@ -59,7 +59,7 @@ def tsvd(
     if hermitian and r != c:
         msg = "Grouped array is not square."
         raise ValueError(msg)
-    if hermitian and not np.allclose(work, work.conj().T):
+    if hermitian and not np.allclose(work, work.T.conj()):
         msg = "Grouped array is not likely to be Hermitian."
         warnings.warn(msg, stacklevel=2)
     u, s, vh = np.linalg.svd(work, full_matrices=False, hermitian=hermitian)
