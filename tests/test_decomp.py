@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import Any, ClassVar
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -131,8 +131,6 @@ class TestTQR:
 
 
 class TestHOSVD:
-    EPS: ClassVar[float] = 0.000001
-
     @pytest.mark.parametrize(
         "iu",
         [
