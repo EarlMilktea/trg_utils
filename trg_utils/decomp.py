@@ -5,6 +5,7 @@ This module provides functions to perform tensor decompositions such as SVD and 
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Sequence
 from typing import Any, SupportsIndex
 
@@ -15,7 +16,7 @@ from trg_utils import _index, merge
 
 
 def tsvd(
-    arr: npt.ArrayLike, iu: Sequence[SupportsIndex], iv: Sequence[SupportsIndex]
+    arr: npt.ArrayLike, iu: Sequence[SupportsIndex], iv: Sequence[SupportsIndex], *, hermitian: bool = False
 ) -> tuple[npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[Any]]:
     """Perform tensor SVD.
 
@@ -27,6 +28,8 @@ def tsvd(
         Axis indices included in ``U``.
     iv
         Axis indices included in ``V``.
+    hermitian
+        Whether to use the Hermitian SVD.
 
     Returns
     -------
@@ -42,7 +45,8 @@ def tsvd(
     ValueError
         If either ``iu`` or ``iv`` is empty.
         If any axis is missing or duplicated in ``iu`` and ``iv``.
-    """  # noqa: DOC502
+        If Hermitian SVD is requested but the grouped array is not square.
+    """
     arr = np.asarray(arr)
     d = arr.ndim
     iu = _index.normalize(d, _index.materialize(iu))
@@ -51,7 +55,14 @@ def tsvd(
     work = arr.transpose(*iu, *iv)
     nu = len(iu)
     work = merge.group(work, (range(nu), range(nu, work.ndim)))
-    u, s, vh = np.linalg.svd(work, full_matrices=False)
+    r, c = work.shape
+    if hermitian and r != c:
+        msg = "Grouped array is not square."
+        raise ValueError(msg)
+    if hermitian and not np.allclose(work, work.conj().T):
+        msg = "Grouped array is not likely to be Hermitian."
+        warnings.warn(msg, stacklevel=2)
+    u, s, vh = np.linalg.svd(work, full_matrices=False, hermitian=hermitian)
     su = tuple(arr.shape[i] for i in iu)
     sv = tuple(arr.shape[i] for i in iv)
     u = merge.ungroup(u, (0, su))
