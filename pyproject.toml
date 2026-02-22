@@ -10,7 +10,7 @@ dynamic = ["version"]
 dependencies = ["numpy"]
 
 [project.optional-dependencies]
-dev = ["mypy", "pyright", "pytest", "pytest-cov", "ruff"]
+dev = ["mypy", "pyright[nodejs]", "pytest", "pytest-cov", "ruff"]
 doc = ["furo", "sphinx"]
 
 [tool.setuptools_scm]
