@@ -7,6 +7,7 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 
+from tests import conftest
 from trg_utils import decomp
 
 
@@ -58,14 +59,14 @@ class TestTSVD:
         ],
     )
     def test_tsvd(self, rng: np.random.Generator, iu: tuple[int, ...], iv: tuple[int, ...]) -> None:
-        arr = rng.normal(size=(1, 2, 3, 4, 5))
+        arr = conftest.f128_random(rng, (1, 2, 3, 4, 5))
         u, s, v = decomp.tsvd(arr, iu, iv)
         us = np.tensordot(u, np.diag(s), axes=(-1, -1))
         usv = np.tensordot(us, v, axes=(-1, -1)).transpose(*_perm(arr, iu, iv))
         np.testing.assert_allclose(arr, usv)
 
     def test_herm_ok(self, rng: np.random.Generator) -> None:
-        arr = rng.normal(size=(4, 4)) + 1j * rng.normal(size=(4, 4))
+        arr = conftest.f128_random(rng, (4, 4))
         arr += arr.T.conj()
         arr = arr.reshape(2, 2, 2, 2)
         u, s, v = decomp.tsvd(arr, (0, 1), (2, 3), hermitian=True)
@@ -76,7 +77,7 @@ class TestTSVD:
         with pytest.raises(ValueError, match=r"not square"):
             decomp.tsvd(np.zeros((3, 4)), (0,), (1,), hermitian=True)
 
-        arr = rng.normal(size=(2, 2, 2, 2)) + 1j * rng.normal(size=(2, 2, 2, 2))
+        arr = conftest.f128_random(rng, (2, 2, 2, 2))
         with pytest.warns(match=r"not likely to be Hermitian"):
             decomp.tsvd(arr, (0, 1), (2, 3), hermitian=True)
 
@@ -123,7 +124,7 @@ class TestTQR:
         ],
     )
     def test_tqr(self, rng: np.random.Generator, iq: tuple[int, ...], ir: tuple[int, ...]) -> None:
-        arr = rng.normal(size=(1, 2, 3, 4, 5))
+        arr = conftest.f128_random(rng, (1, 2, 3, 4, 5))
         q, r = decomp.tqr(arr, iq, ir)
         qr = np.tensordot(q, r, axes=(-1, -1)).transpose(*_perm(arr, iq, ir))
         np.testing.assert_allclose(arr, qr)
@@ -162,14 +163,11 @@ class TestHOSVD:
         ],
     )
     def test_hosvd(self, rng: np.random.Generator, iu: tuple[int, ...], iv: tuple[int, ...]) -> None:
-        arr = rng.normal(size=(1, 2, 3, 4, 5))
+        arr = conftest.f128_random(rng, (1, 2, 3, 4, 5))
         s, u = decomp.hosvd(arr, iu)
         u_, s_, _ = decomp.tsvd(arr, iu, iv)
         n = min(s.size, s_.size)
         np.testing.assert_allclose(s[:n], s_[:n])
-        for i in range(n):
-            vi = u[..., i]
-            vi *= np.sign(vi.sum())
-            vi_ = u_[..., i]
-            vi_ *= np.sign(vi_.sum())
-            np.testing.assert_allclose(vi, vi_)
+        u = u[..., :n].reshape(-1, n)
+        u_ = u_[..., :n].reshape(-1, n)
+        np.testing.assert_allclose(np.linalg.svdvals(u.T.conj() @ u_), 1)  # MEMO: Potentially incomplete

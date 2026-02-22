@@ -15,6 +15,7 @@ def materialize(ind: SupportsIndex) -> int: ...
 
 
 def materialize(ind: SupportsIndex | Iterable[SupportsIndex]) -> int | tuple[int, ...]:
+    assert not isinstance(ind, str | bytes)  # Lead to infinite recursion
     if isinstance(ind, Iterable):
         return tuple(materialize(i) for i in ind)
     return operator.index(ind)

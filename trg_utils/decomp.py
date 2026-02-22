@@ -59,7 +59,7 @@ def tsvd(
     if hermitian and r != c:
         msg = "Grouped array is not square."
         raise ValueError(msg)
-    if hermitian and not np.allclose(work, work.conj().T):
+    if hermitian and not np.allclose(work, work.T.conj()):
         msg = "Grouped array is not likely to be Hermitian."
         warnings.warn(msg, stacklevel=2)
     u, s, vh = np.linalg.svd(work, full_matrices=False, hermitian=hermitian)
@@ -150,7 +150,7 @@ def hosvd(arr: npt.ArrayLike, iu: Sequence[SupportsIndex]) -> tuple[npt.NDArray[
         msg = "At least one axis must be excluded from 'iu'."
         raise ValueError(msg)
     work = merge.group(arr, (iu, iv))
-    vals, vecs = np.linalg.eigh(work @ work.T)
+    vals, vecs = np.linalg.eigh(work @ work.T.conj())
     perm = np.argsort(vals)[::-1]
     vals = np.maximum(vals, 0)
     su = tuple(arr.shape[i] for i in iu)
