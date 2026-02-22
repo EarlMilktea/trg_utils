@@ -65,16 +65,17 @@ class TestTSVD:
         np.testing.assert_allclose(arr, usv)
 
     def test_herm_ok(self, rng: np.random.Generator) -> None:
-        arr = rng.normal(size=(2, 2))
-        arr += arr.T
-        u, s, v = decomp.tsvd(arr, (0,), (1,), hermitian=True)
-        usv = np.einsum("ai,i,bi->ab", u, s, v)
+        arr = rng.normal(size=(4, 4)) + 1j * rng.normal(size=(4, 4))
+        arr += arr.T.conj()
+        arr = arr.reshape(2, 2, 2, 2)
+        u, s, v = decomp.tsvd(arr, (0, 1), (2, 3), hermitian=True)
+        usv = np.einsum("abi,i,cdi->abcd", u, s, v)
         np.testing.assert_allclose(arr, usv)
 
     def test_herm_ng(self, rng: np.random.Generator) -> None:
-        arr = rng.normal(size=(2, 2))
+        arr = rng.normal(size=(2, 2, 2, 2)) + 1j * rng.normal(size=(2, 2, 2, 2))
         with pytest.warns(UserWarning, match=r"not likely to be Hermitian"):
-            decomp.tsvd(arr, (0,), (1,), hermitian=True)
+            decomp.tsvd(arr, (0, 1), (2, 3), hermitian=True)
 
 
 class TestTQR:

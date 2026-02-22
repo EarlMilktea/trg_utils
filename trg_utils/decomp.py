@@ -54,8 +54,8 @@ def tsvd(
     work = arr.transpose(*iu, *iv)
     nu = len(iu)
     work = merge.group(work, (range(nu), range(nu, work.ndim)))
-    if hermitian and not np.allclose(arr, arr.conj().T):
-        msg = "Input array is not likely to be Hermitian."
+    if hermitian and not np.allclose(work, work.conj().T):
+        msg = "Grouped array is not likely to be Hermitian."
         warnings.warn(msg, stacklevel=2)
     u, s, vh = np.linalg.svd(work, full_matrices=False, hermitian=hermitian)
     su = tuple(arr.shape[i] for i in iu)
