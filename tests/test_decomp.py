@@ -64,6 +64,18 @@ class TestTSVD:
         usv = np.tensordot(us, v, axes=(-1, -1)).transpose(*_perm(arr, iu, iv))
         np.testing.assert_allclose(arr, usv)
 
+    def test_herm_ok(self, rng: np.random.Generator) -> None:
+        arr = rng.normal(size=(2, 2))
+        arr += arr.T
+        u, s, v = decomp.tsvd(arr, (0,), (1,), hermitian=True)
+        usv = np.einsum("ai,i,bi->ab", u, s, v)
+        np.testing.assert_allclose(arr, usv)
+
+    def test_herm_ng(self, rng: np.random.Generator) -> None:
+        arr = rng.normal(size=(2, 2))
+        with pytest.warns(UserWarning, match=r"not likely to be Hermitian"):
+            decomp.tsvd(arr, (0,), (1,), hermitian=True)
+
 
 class TestTQR:
     @pytest.mark.parametrize(
