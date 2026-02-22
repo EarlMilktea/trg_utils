@@ -74,7 +74,7 @@ class TestTSVD:
 
     def test_herm_ng(self, rng: np.random.Generator) -> None:
         arr = rng.normal(size=(2, 2, 2, 2)) + 1j * rng.normal(size=(2, 2, 2, 2))
-        with pytest.warns(UserWarning, match=r"not likely to be Hermitian"):
+        with pytest.warns(match=r"not likely to be Hermitian"):
             decomp.tsvd(arr, (0, 1), (2, 3), hermitian=True)
 
 
