@@ -45,7 +45,8 @@ def tsvd(
     ValueError
         If either ``iu`` or ``iv`` is empty.
         If any axis is missing or duplicated in ``iu`` and ``iv``.
-    """  # noqa: DOC502
+        If Hermitian SVD is requested but the grouped array is not square.
+    """
     arr = np.asarray(arr)
     d = arr.ndim
     iu = _index.normalize(d, _index.materialize(iu))
@@ -54,6 +55,10 @@ def tsvd(
     work = arr.transpose(*iu, *iv)
     nu = len(iu)
     work = merge.group(work, (range(nu), range(nu, work.ndim)))
+    r, c = work.shape
+    if hermitian and r != c:
+        msg = "Grouped array is not square."
+        raise ValueError(msg)
     if hermitian and not np.allclose(work, work.conj().T):
         msg = "Grouped array is not likely to be Hermitian."
         warnings.warn(msg, stacklevel=2)

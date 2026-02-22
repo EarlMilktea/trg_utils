@@ -73,6 +73,9 @@ class TestTSVD:
         np.testing.assert_allclose(arr, usv)
 
     def test_herm_ng(self, rng: np.random.Generator) -> None:
+        with pytest.raises(ValueError, match=r"not square"):
+            decomp.tsvd(np.zeros((3, 4)), (0,), (1,), hermitian=True)
+
         arr = rng.normal(size=(2, 2, 2, 2)) + 1j * rng.normal(size=(2, 2, 2, 2))
         with pytest.warns(match=r"not likely to be Hermitian"):
             decomp.tsvd(arr, (0, 1), (2, 3), hermitian=True)
