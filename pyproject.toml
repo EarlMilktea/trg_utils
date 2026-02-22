@@ -29,6 +29,13 @@ omit = ["tests/**", "**/_version.py"]
 files = ["trg_utils", "tests"]
 strict = true
 
+[tool.pyright]
+reportUnknownArgumentType = "information"
+reportUnknownLambdaType = "information"
+reportUnknownMemberType = "information"
+reportUnknownParameterType = "information"
+reportUnknownVariableType = "information"
+
 [tool.ruff]
 line-length = 120
 
