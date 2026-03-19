@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import operator
 import typing
 from collections.abc import Iterable, Iterator, Sequence
@@ -69,4 +70,20 @@ def assert_span(d: int, *inds: int | tuple[int, ...]) -> None:
     work.sort()
     if work != ref:
         msg = "Indices must cover all axes without overlap."
+        raise ValueError(msg)
+
+
+def assert_pshapes(p: tuple[int, ...], q: tuple[int, ...]) -> None:
+    if p != q:
+        msg = "Inconsistent shapes."
+        raise ValueError(msg)
+    if len(p) <= 1:
+        msg = "Must have at least two legs."
+        raise ValueError(msg)
+    if math.prod(p) == 0:
+        msg = "All the legs must be non-empty."
+        raise ValueError(msg)
+    *head, tail = p
+    if math.prod(head) < tail:
+        msg = "Projected dimension (last) must be smaller than the original (rest)."
         raise ValueError(msg)
