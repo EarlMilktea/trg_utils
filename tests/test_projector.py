@@ -69,7 +69,7 @@ class TestExtend:
 class TestNormalize:
     def test_normalize_ng(self) -> None:
         with pytest.raises(ValueError, match=r"Invalid mode"):
-            projector.normalize(np.zeros((9, 1)), np.zeros((9, 1)), mode="invalid")  # pyright: ignore[reportArgumentType]
+            projector.normalize(np.zeros((9, 1)), np.zeros((9, 1)), mode="invalid")  # type: ignore[arg-type]
 
     @pytest.mark.parametrize(
         "shape",
