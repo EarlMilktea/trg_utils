@@ -28,6 +28,7 @@ omit = ["tests/**", "**/_version.py"]
 [tool.mypy]
 files = ["trg_utils", "tests"]
 strict = true
+exclude = ["dist"]
 
 [tool.pyright]
 reportUnknownArgumentType = "information"
