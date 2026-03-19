@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -64,3 +64,36 @@ class TestExtend:
         np.testing.assert_allclose(p, pex[..., :r])
         np.testing.assert_allclose(q, qex[..., :r])
         np.testing.assert_allclose(pdot(pex, qex.conj()), np.eye(d), atol=1e-12)
+
+
+class TestNormalize:
+    def test_normalize_ng(self) -> None:
+        with pytest.raises(ValueError, match=r"Invalid mode"):
+            projector.normalize(np.zeros((9, 1)), np.zeros((9, 1)), mode="invalid")  # pyright: ignore[reportArgumentType]
+
+    @pytest.mark.parametrize("mode", ["local", "global"])
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            (3, 1),
+            (3, 2),
+            (3, 3),
+            (2, 3, 1),
+            (2, 3, 2),
+            (2, 3, 3),
+            (2, 3, 6),
+        ],
+    )
+    def test_normalize(
+        self, rng: np.random.Generator, shape: tuple[int, ...], mode: Literal["local", "global"]
+    ) -> None:
+        # MEMO: Invalid input for dirty testing
+        x = conftest.f128_random(rng, shape)
+        orig = pdot(x, x.conj())
+        p, q = projector.normalize(x, x, mode=mode)
+        np.testing.assert_allclose(pdot(p, q.conj()), orig, atol=1e-12)
+        np.testing.assert_allclose(
+            np.diagonal(pdot(p, p.conj())),
+            np.diagonal(pdot(q, q.conj())),
+            atol=1e-12,
+        )

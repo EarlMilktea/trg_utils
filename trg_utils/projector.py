@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
+import math
+from typing import Any, Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -49,3 +50,62 @@ def extend(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], 
     pex = np.concatenate((p, (u @ w)[:, :rc]), axis=1)
     qex = np.concatenate((q, (v @ w)[:, :rc]), axis=1)
     return trg_utils.ungroup(pex, (0, sp[:-1])), trg_utils.ungroup(qex, (0, sq[:-1]))
+
+
+def _normalize_local(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
+    chi: int
+    *_, chi = p.shape
+    p = p.copy()
+    q = q.copy()
+    for i in range(chi):
+        cp = np.linalg.norm(p[..., i])
+        cq = np.linalg.norm(q[..., i])
+        c = math.sqrt(cp * cq)
+        p[..., i] *= c / cp
+        q[..., i] *= c / cq
+    return p, q
+
+
+def _normalize_global(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
+    cp = np.linalg.norm(p)
+    cq = np.linalg.norm(q)
+    c = math.sqrt(cp * cq)
+    return (c / cp) * p, (c / cq) * q
+
+
+def normalize(
+    p: npt.NDArray[Any], q: npt.NDArray[Any], mode: Literal["local", "global"]
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
+    """Adjust norms of projector pairs without affecting the biorthogonality.
+
+    Parameters
+    ----------
+    p
+        Left projector.
+    q
+        Right projector.
+    mode
+        Normalization mode.
+        If `"local"`, each pair of vectors will have the same norm. If `"global"`, the entire projectors are used.
+
+    Returns
+    -------
+    p : `numpy.ndarray`
+        Normalized left projector.
+    q : `numpy.ndarray`
+        Normalized right projector.
+
+    Raises
+    ------
+    ValueError
+        If `mode` is invalid.
+    """
+    _index.assert_pshapes(p.shape, q.shape)
+    match mode:
+        case "local":
+            return _normalize_local(p, q)
+        case "global":
+            return _normalize_global(p, q)
+        case _:
+            msg = "Invalid mode."
+            raise ValueError(msg)
