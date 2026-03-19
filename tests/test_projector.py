@@ -97,3 +97,10 @@ class TestNormalize:
             np.diagonal(pdot(q, q.conj())),
             atol=1e-12,
         )
+
+    @pytest.mark.parametrize("mode", ["local", "global"])
+    def test_normalize_zero(self, mode: Literal["local", "global"]) -> None:
+        p = np.zeros((2, 2))
+        q = np.zeros((2, 2))
+        with pytest.raises(AssertionError):
+            projector.normalize(p, q, mode=mode)
