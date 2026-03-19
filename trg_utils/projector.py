@@ -55,21 +55,27 @@ def extend(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], 
 def _normalize_local(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
     chi: int
     *_, chi = p.shape
-    p = p.copy()
-    q = q.copy()
+    ps: list[npt.NDArray[Any]] = []
+    qs: list[npt.NDArray[Any]] = []
     for i in range(chi):
         cp = np.linalg.norm(p[..., i])
         cq = np.linalg.norm(q[..., i])
         c = math.sqrt(cp * cq)
-        p[..., i] *= c / cp
-        q[..., i] *= c / cq
-    return p, q
+        if c == 0:
+            msg = "Basis overlap is zero."
+            raise AssertionError(msg)
+        ps.append((c / cp) * p[..., i])
+        qs.append((c / cq) * q[..., i])
+    return np.stack(ps, axis=-1), np.stack(qs, axis=-1)
 
 
 def _normalize_global(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
     cp = np.linalg.norm(p)
     cq = np.linalg.norm(q)
     c = math.sqrt(cp * cq)
+    if c == 0:
+        msg = "Basis overlap is zero."
+        raise AssertionError(msg)
     return (c / cp) * p, (c / cq) * q
 
 
