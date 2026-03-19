@@ -105,6 +105,10 @@ def normalize(
     ------
     ValueError
         If `mode` is invalid.
+
+    Notes
+    -----
+    Biorthonormality is not validated.
     """
     _index.assert_pshapes(p.shape, q.shape)
     match mode:
