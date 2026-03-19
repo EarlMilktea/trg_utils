@@ -71,7 +71,6 @@ class TestNormalize:
         with pytest.raises(ValueError, match=r"Invalid mode"):
             projector.normalize(np.zeros((9, 1)), np.zeros((9, 1)), mode="invalid")  # pyright: ignore[reportArgumentType]
 
-    @pytest.mark.parametrize("mode", ["local", "global"])
     @pytest.mark.parametrize(
         "shape",
         [
@@ -84,19 +83,36 @@ class TestNormalize:
             (2, 3, 6),
         ],
     )
-    def test_normalize(
-        self, rng: np.random.Generator, shape: tuple[int, ...], mode: Literal["local", "global"]
-    ) -> None:
+    def test_normalize_local(self, rng: np.random.Generator, shape: tuple[int, ...]) -> None:
         # MEMO: Invalid input for dirty testing
-        x = conftest.f128_random(rng, shape)
-        orig = pdot(x, x.conj())
-        p, q = projector.normalize(x, x, mode=mode)
-        np.testing.assert_allclose(pdot(p, q.conj()), orig, atol=1e-12)
-        np.testing.assert_allclose(
-            np.diagonal(pdot(p, p.conj())),
-            np.diagonal(pdot(q, q.conj())),
-            atol=1e-12,
-        )
+        p = conftest.f128_random(rng, shape)
+        q = conftest.f128_random(rng, shape)
+        orig = np.diagonal(pdot(p, q.conj()))
+        p, q = projector.normalize(p, q, mode="local")
+        np.testing.assert_allclose(np.diagonal(pdot(p, q.conj())), orig, atol=1e-12)
+        for i in range(shape[-1]):
+            assert np.linalg.norm(p[..., i]) == pytest.approx(np.linalg.norm(q[..., i]))
+
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            (3, 1),
+            (3, 2),
+            (3, 3),
+            (2, 3, 1),
+            (2, 3, 2),
+            (2, 3, 3),
+            (2, 3, 6),
+        ],
+    )
+    def test_normalize_global(self, rng: np.random.Generator, shape: tuple[int, ...]) -> None:
+        # MEMO: Invalid input for dirty testing
+        p = conftest.f128_random(rng, shape)
+        q = conftest.f128_random(rng, shape)
+        orig = np.diagonal(pdot(p, q.conj()))
+        p, q = projector.normalize(p, q, mode="global")
+        np.testing.assert_allclose(np.diagonal(pdot(p, q.conj())), orig, atol=1e-12)
+        assert np.linalg.norm(p) == pytest.approx(np.linalg.norm(q))
 
     @pytest.mark.parametrize("mode", ["local", "global"])
     def test_normalize_zero(self, mode: Literal["local", "global"]) -> None:
