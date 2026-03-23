@@ -165,7 +165,8 @@ class TestHOSVD:
     )
     @given(arr=conftest.shaped_random((1, 2, 3, 4, 5)))
     def test_hosvd(self, arr: npt.NDArray[np.complex128], iu: tuple[int, ...], iv: tuple[int, ...]) -> None:
-        s, _ = decomp.hosvd(arr, iu)
-        _, s_, _ = decomp.tsvd(arr, iu, iv)
+        s, u = decomp.hosvd(arr, iu)
+        u_, s_, _ = decomp.tsvd(arr, iu, iv)
         n = min(s.size, s_.size)
         np.testing.assert_allclose(s[:n], s_[:n], atol=1e-6)  # MEMO: Larger tolerance required
+        assert u.shape == u_.shape
