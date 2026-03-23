@@ -71,19 +71,22 @@ ignore = [
   "Q003",
   "W191",
 
-  "CPY",  # flake8-copyright
-  "E74",  # ambiguous-XXX-name
-  "ERA",  # eradicate
-  "S101", # assert
-  "T20",  # flake8-print
-  "TC",   # flake8-type-checking
-  "TD",   # flake8-todo
+  "CPY",     # flake8-copyright
+  "E74",     # ambiguous-XXX-name
+  "ERA",     # eradicate
+  "PLR2004", # magic-value-comparison
+  "S101",    # assert
+  "T20",     # flake8-print
+  "TC",      # flake8-type-checking
+  "TD",      # flake8-todo
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = [
   "D10",     # undocumented-XXX
+  "PLC2701", # import-private-name
   "PLR6301", # self not used
+  "SLF001",  # private-member-access
 ]
 "docs/**" = [
   "D10",    # undocumented-XXX
