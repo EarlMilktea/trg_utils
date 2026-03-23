@@ -1,14 +1,26 @@
 from __future__ import annotations
 
+import hypothesis.extra.numpy as hnp
+import hypothesis.strategies as st
 import numpy as np
 import numpy.typing as npt
-import pytest
+from hypothesis.strategies import DrawFn, SearchStrategy
 
 
-@pytest.fixture
-def rng() -> np.random.Generator:
-    return np.random.default_rng(42)
+def shaped_f128(shape: tuple[int, ...]) -> SearchStrategy[npt.NDArray[np.complex128]]:
+    return hnp.arrays(
+        dtype=np.complex128,
+        shape=shape,
+        elements=st.complex_numbers(max_magnitude=1),
+    )
 
 
-def f128_random(rng: np.random.Generator, shape: tuple[int, ...]) -> npt.NDArray[np.complex128]:
-    return rng.normal(size=shape) + 1j * rng.normal(size=shape)
+def almost_diagonal(d: int) -> SearchStrategy[npt.NDArray[np.complex128]]:
+    @st.composite
+    def _inner(draw: DrawFn) -> npt.NDArray[np.complex128]:
+        arr = draw(shaped_f128((d, d)))
+        rho = float(np.linalg.svdvals(arr)[0])
+        co = 0.25 / max(rho, 1.0)
+        return np.eye(d) + co * arr
+
+    return _inner()
