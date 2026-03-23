@@ -59,7 +59,7 @@ class TestTSVD:
             ((-2, 0, 1, -1), (2,)),
         ],
     )
-    @given(arr=conftest.shaped_random((1, 2, 3, 4, 5)))
+    @given(arr=conftest.shaped_f128((1, 2, 3, 4, 5)))
     def test_tsvd(self, arr: npt.NDArray[np.complex128], iu: tuple[int, ...], iv: tuple[int, ...]) -> None:
         u, s, v = decomp.tsvd(arr, iu, iv)
         us = np.tensordot(u, np.diag(s), axes=(-1, -1))
@@ -124,7 +124,7 @@ class TestTQR:
             ((-2, 0, 1), (-1, 2)),
         ],
     )
-    @given(arr=conftest.shaped_random((1, 2, 3, 4, 5)))
+    @given(arr=conftest.shaped_f128((1, 2, 3, 4, 5)))
     def test_tqr(self, arr: npt.NDArray[np.complex128], iq: tuple[int, ...], ir: tuple[int, ...]) -> None:
         q, r = decomp.tqr(arr, iq, ir)
         qr = np.tensordot(q, r, axes=(-1, -1)).transpose(*_perm(arr, iq, ir))
@@ -163,7 +163,7 @@ class TestHOSVD:
             ((-2, 0, 1, -1), (2,)),
         ],
     )
-    @given(arr=conftest.shaped_random((1, 2, 3, 4, 5)))
+    @given(arr=conftest.shaped_f128((1, 2, 3, 4, 5)))
     def test_hosvd(self, arr: npt.NDArray[np.complex128], iu: tuple[int, ...], iv: tuple[int, ...]) -> None:
         s, u = decomp.hosvd(arr, iu)
         u_, s_, _ = decomp.tsvd(arr, iu, iv)
