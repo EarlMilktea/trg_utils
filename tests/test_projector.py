@@ -9,7 +9,7 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 from hypothesis import given
-from hypothesis.strategies import DrawFn
+from hypothesis.strategies import DrawFn, SearchStrategy
 
 import trg_utils
 from tests import conftest
@@ -18,6 +18,24 @@ from trg_utils import projector
 
 def pdot(lhs: npt.NDArray[Any], rhs: npt.NDArray[Any]) -> npt.NDArray[Any]:
     return np.tensordot(lhs, rhs, (range(lhs.ndim - 1), range(rhs.ndim - 1)))
+
+
+def _pq(d_outer: int) -> SearchStrategy[tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]]:
+
+    @st.composite
+    def _inner(draw: DrawFn) -> tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]:
+        shapes = draw(hnp.array_shapes(min_dims=d_outer, max_dims=d_outer))
+        extra = math.prod(shapes)
+        x = draw(conftest.almost_diagonal(extra))
+        r = draw(st.integers(1, extra))
+        ix = np.linalg.inv(x)
+        p = trg_utils.ungroup(x[:, :r], (0, shapes))
+        q = trg_utils.ungroup((ix.T.conj())[:, :r], (0, shapes)).astype(np.complex128, copy=False)
+        assert p.shape == (*shapes, r)
+        assert q.shape == (*shapes, r)
+        return p, q
+
+    return _inner()
 
 
 class TestExtend:
@@ -34,20 +52,7 @@ class TestExtend:
         with pytest.raises(ValueError, match=r"smaller"):
             projector.extend(np.zeros((2, 2, 9)), np.zeros((2, 2, 9)))
 
-    @staticmethod
-    @st.composite
-    def _pq_2d(draw: DrawFn) -> tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]:
-        (d,) = draw(hnp.array_shapes(max_dims=1))
-        x = draw(conftest.almost_diagonal(d))
-        r = draw(st.integers(1, d))
-        ix = np.linalg.inv(x)
-        p = x[:, :r]
-        q = (ix.T.conj())[:, :r].astype(np.complex128, copy=False)
-        assert p.shape == (d, r)
-        assert q.shape == (d, r)
-        return p, q
-
-    @given(pq=_pq_2d())
+    @given(pq=_pq(1))
     def test_extend_2d(self, pq: tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]) -> None:
         p, q = pq
         d, r = p.shape
@@ -61,21 +66,7 @@ class TestExtend:
         q_ = qex[:, r:]
         np.testing.assert_allclose(p_.T.conj() @ p_, q_.T.conj() @ q_, atol=1e-12)
 
-    @staticmethod
-    @st.composite
-    def _pq_3d(draw: DrawFn) -> tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]:
-        d0, d1 = draw(hnp.array_shapes(min_dims=2, max_dims=2))
-        d = d0 * d1
-        x = draw(conftest.almost_diagonal(d))
-        r = draw(st.integers(1, d))
-        ix = np.linalg.inv(x)
-        p = trg_utils.ungroup(x[:, :r], (0, (d0, d1)))
-        q = trg_utils.ungroup((ix.T.conj())[:, :r], (0, (d0, d1))).astype(np.complex128, copy=False)
-        assert p.shape == (d0, d1, r)
-        assert q.shape == (d0, d1, r)
-        return p, q
-
-    @given(pq=_pq_3d())
+    @given(pq=_pq(2))
     def test_extend_3d(self, pq: tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]) -> None:
         p, q = pq
         d0, d1, r = p.shape
@@ -87,21 +78,21 @@ class TestExtend:
         np.testing.assert_allclose(pdot(pex, qex.conj()), np.eye(d), atol=1e-12)
 
 
+@st.composite
+def _pq_dummy(draw: DrawFn) -> tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]:
+    shape = draw(hnp.array_shapes(max_side=4))
+    extra = math.prod(shape)
+    p = draw(conftest.almost_diagonal(extra)).reshape((*shape, extra))
+    q = draw(conftest.almost_diagonal(extra)).reshape((*shape, extra))
+    return p, q
+
+
 class TestNormalize:
     def test_normalize_ng(self) -> None:
         with pytest.raises(ValueError, match=r"Invalid mode"):
             projector.normalize(np.zeros((9, 1)), np.zeros((9, 1)), mode="invalid")  # type: ignore[arg-type]
 
-    @staticmethod
-    @st.composite
-    def _pq(draw: DrawFn) -> tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]:
-        shape = draw(hnp.array_shapes(max_side=4))
-        extra = math.prod(shape)
-        p = draw(conftest.almost_diagonal(extra)).reshape((*shape, extra))
-        q = draw(conftest.almost_diagonal(extra)).reshape((*shape, extra))
-        return p, q
-
-    @given(pq=_pq())
+    @given(pq=_pq_dummy())
     def test_normalize_local(self, pq: tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]) -> None:
         # MEMO: Invalid input for dirty testing
         p, q = pq
@@ -111,7 +102,7 @@ class TestNormalize:
         for i in range(p.shape[-1]):
             assert np.linalg.norm(p[..., i]) == pytest.approx(np.linalg.norm(q[..., i]))
 
-    @given(pq=_pq())
+    @given(pq=_pq_dummy())
     def test_normalize_global(self, pq: tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]) -> None:
         # MEMO: Invalid input for dirty testing
         p, q = pq
