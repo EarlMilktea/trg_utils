@@ -19,7 +19,8 @@ def almost_diagonal(d: int) -> SearchStrategy[npt.NDArray[np.complex128]]:
     @st.composite
     def _inner(draw: DrawFn) -> npt.NDArray[np.complex128]:
         arr = draw(shaped_f128((d, d)))
-        rho, *_ = np.linalg.svdvals(arr).flat
-        return np.eye(d) + 0.25 * (arr / max(rho, 1))
+        rho = float(np.linalg.svdvals(arr)[0])
+        co = 0.25 / max(rho, 1.0)
+        return np.eye(d) + co * arr
 
     return _inner()

@@ -62,7 +62,8 @@ def group(arr: npt.ArrayLike, inds: Sequence[SupportsIndex | Sequence[SupportsIn
     # Preserve the original shape
     s_prev: tuple[int, ...] = arr.shape
     shapes = (math.prod(s_prev[i] for i in ind) if isinstance(ind, tuple) else s_prev[ind] for ind in args)
-    return arr.transpose(*_index.flatten(args)).reshape(*shapes)
+    ret = arr.transpose(*_index.flatten(args)).reshape(*shapes)
+    return np.asarray(ret)
 
 
 def _ungroup_impl(arr: npt.NDArray[_T], target: int, split: tuple[int, ...]) -> npt.NDArray[_T]:
