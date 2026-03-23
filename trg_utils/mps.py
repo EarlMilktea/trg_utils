@@ -1,0 +1,126 @@
+"""Optimize MPS by locally-optimal global SVDs.
+
+Thoroughout this module, MPSs are assumed to have these conventions:
+
+- Tensors are given as a sequence of `numpy.ndarray` objects (denoted as ``ts``).
+- At least two tensors are required.
+- ``ts[i].ndim`` must be ``2`` for ``i == 0`` and ``i == len(ts) - 1``, and must be ``3`` otherwise.
+- Tensors are indexed as ``ts[i][open, minus, plus]`` where ``open`` is the open leg, \
+  ``minus`` is the closed leg tied to ``ts[i - 1]``, and ``plus`` is tied to ``ts[i + 1]``. \
+  ``minus`` or ``plus`` are ignored in the edge tensors.
+- All the closed legs must have coherent dimensions.
+"""
+
+from __future__ import annotations
+
+import copy
+import dataclasses
+import itertools
+from collections.abc import Sequence
+from typing import Any, TypeVar
+
+import numpy as np
+import numpy.typing as npt
+
+import trg_utils
+
+_T = TypeVar("_T", bound=np.generic)
+
+
+def _attach_dummy(ts: Sequence[npt.NDArray[_T]]) -> list[npt.NDArray[_T]]:
+    if len(ts) < 2:
+        msg = "At least two tensors are required."
+        raise ValueError(msg)
+    head, *mid, tail = ts
+    if head.ndim != 2 or tail.ndim != 2:
+        msg = "Edge tensors must be 2D."
+        raise ValueError(msg)
+    if any(t.ndim != 3 for t in mid):
+        msg = "Bulk tensors must be 3D."
+        raise ValueError(msg)
+    ret = [
+        head[:, np.newaxis, :],
+        *mid,
+        tail[:, :, np.newaxis],
+    ]
+    for left, right in itertools.pairwise(ret):
+        if left.shape[2] != right.shape[1]:
+            msg = "Inconsistent closed leg dimensions."
+            raise ValueError(msg)
+    return ret
+
+
+def _detach_dummy(ts: Sequence[npt.NDArray[_T]]) -> list[npt.NDArray[_T]]:
+    head, *mid, tail = ts
+    return [
+        head[:, 0, :],
+        *mid,
+        tail[:, :, 0],
+    ]
+
+
+@dataclasses.dataclass
+class _CanonicalMPS:
+    """Left/right canonical MPS with dummy legs."""
+
+    ts: list[npt.NDArray[Any]]
+    chi: int | None
+    ss: list[npt.NDArray[Any]] = dataclasses.field(default_factory=list)
+    us: list[npt.NDArray[Any]] = dataclasses.field(default_factory=list)
+    vs: list[npt.NDArray[Any]] = dataclasses.field(default_factory=list)
+    gauge: list[npt.NDArray[Any]] = dataclasses.field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        assert len(self.ts) >= 2
+        assert self.chi is None or self.chi > 0
+
+    def _trunc(self, s: npt.NDArray[Any]) -> npt.NDArray[Any]:
+        if self.chi is not None:
+            s = s.copy()
+            s[self.chi :] = 0
+        return s
+
+    @property
+    def n(self) -> int:
+        return len(self.ts)
+
+    def _forward(self) -> npt.NDArray[Any]:
+        work = self.ts[0]
+        s: npt.NDArray[Any] | None = None
+        for i in range(self.n - 1):
+            u, s, v = trg_utils.tsvd(work, (0, 1), (2,))
+            self.us.append(u)
+            work = np.einsum("bj,ij,aic->abc", np.diag(s), v, self.ts[i + 1])
+        assert s is not None
+        self.ss.append(s)  # Store the raw singular values
+        return work
+
+    def _backward(self, work: npt.NDArray[Any]) -> None:
+        for i in reversed(range(self.n - 1)):
+            gauge, s, v = trg_utils.tsvd(work, (1,), (0, 2))
+            self.gauge.append(gauge)
+            self.ss.append(s)  # Store the raw singular values
+            self.vs.append(v.transpose(0, 2, 1))  # Adjust leg order
+            work = np.einsum("abi,ij,jc->abc", self.us[i], gauge, np.diag(self._trunc(s)))
+        self.gauge.reverse()
+        self.ss.reverse()
+        self.vs.reverse()
+
+    def svd_at(self, i: int) -> tuple[list[npt.NDArray[Any]], npt.NDArray[Any], list[npt.NDArray[Any]]]:
+        nu = i + 1
+        nv = self.n - nu
+        assert nu > 0
+        assert nv > 0
+        us = copy.deepcopy(self.us[:nu])
+        vs = copy.deepcopy(self.vs[-nv:])
+        s = self.ss[i].copy()
+        us[-1] = np.einsum("abi,ic->abc", us[-1], self.gauge[i])
+        return us, s, vs
+
+    @staticmethod
+    def from_ts(ts_3: Sequence[npt.NDArray[Any]], chi: int | None = None) -> _CanonicalMPS:
+        ts_3 = [t.copy() for t in ts_3]
+        mps = _CanonicalMPS(ts_3, chi)
+        work = mps._forward()
+        mps._backward(work)
+        return mps
