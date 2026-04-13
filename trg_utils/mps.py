@@ -68,10 +68,11 @@ class _CanonicalMPS:
     ss: list[npt.NDArray[Any]] = dataclasses.field(default_factory=list)
     us: list[npt.NDArray[Any]] = dataclasses.field(default_factory=list)
     vs: list[npt.NDArray[Any]] = dataclasses.field(default_factory=list)
+    # Gauge transformation applied just after U
     gauge: list[npt.NDArray[Any]] = dataclasses.field(default_factory=list)
 
     def __post_init__(self) -> None:
-        assert len(self.ts) >= 2
+        assert self.n >= 2
         assert self.chi is None or self.chi > 0
 
     def _trunc(self, s: npt.NDArray[Any]) -> npt.NDArray[Any]:
