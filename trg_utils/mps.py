@@ -23,6 +23,7 @@ import numpy as np
 import numpy.typing as npt
 
 import trg_utils
+from trg_utils import projector
 
 _T = TypeVar("_T", bound=np.generic)
 
@@ -105,6 +106,14 @@ class _CanonicalMPS:
         self.ss.reverse()
         self.vs.reverse()
 
+    @staticmethod
+    def from_ts(ts_3: Sequence[npt.NDArray[Any]], chi: int | None = None) -> _CanonicalMPS:
+        ts_3 = [t.copy() for t in ts_3]
+        mps = _CanonicalMPS(ts_3, chi)
+        work = mps._forward()
+        mps._backward(work)
+        return mps
+
     def svd_at(self, i: int) -> tuple[list[npt.NDArray[Any]], npt.NDArray[Any], list[npt.NDArray[Any]]]:
         nu = i + 1
         nv = self.n - nu
@@ -117,9 +126,48 @@ class _CanonicalMPS:
         return us, s, vs
 
     @staticmethod
-    def from_ts(ts_3: Sequence[npt.NDArray[Any]], chi: int | None = None) -> _CanonicalMPS:
-        ts_3 = [t.copy() for t in ts_3]
-        mps = _CanonicalMPS(ts_3, chi)
-        work = mps._forward()
-        mps._backward(work)
-        return mps
+    def _isqrt(s: npt.NDArray[Any], rtol: float = 1e-14) -> tuple[int, npt.NDArray[Any]]:
+        assert s.ndim == 1
+        rank = int(np.count_nonzero(s > rtol * s.max()))
+        ret = np.zeros_like(s)
+        if rank > 0:
+            ret[:rank] = 1 / np.sqrt(s[:rank])
+        return rank, ret
+
+    def _prefix(self) -> list[npt.NDArray[Any]]:
+        prefix: list[npt.NDArray[Any]] = [np.eye(1)]
+        for t, u in zip(self.ts, self.us, strict=False):
+            prefix.append(np.einsum("abi,bc,acj->ij", t.conj(), prefix[-1], u))
+        for i, g in enumerate(self.gauge, start=1):
+            prefix[i] = prefix[i] @ g  # noqa: PLR6104 (shape change required)
+        return prefix
+
+    def projectors(self) -> tuple[list[npt.NDArray[Any]], list[npt.NDArray[Any]]]:
+        ps: list[npt.NDArray[Any]] = []
+        qs: list[npt.NDArray[Any]] = []
+        prefix = self._prefix()
+        work = np.eye(1)
+        suffix = [work]
+        for ls, (t, v) in enumerate(zip(reversed(self.ts), reversed(self.vs), strict=False), start=1):
+            work = np.einsum("aib,bc,ajc->ij", t.conj(), work, v)
+            suffix.append(work)
+            rank, iw = self._isqrt(self.ss[-ls])
+            if rank > 0:
+                iw = np.diag(iw)
+                p = (suffix[ls].conj() @ iw)[:, :rank]
+                q = (prefix[self.n - ls] @ iw)[:, :rank]
+                p, q = projector.extend(p, q)
+            else:
+                d, _ = suffix[ls].shape
+                p = np.eye(d)
+                q = np.eye(d)
+            ps.append(p)
+            qs.append(q)
+            if self.chi is not None:
+                keep = min(self.chi, rank)  # MEMO: Eliminate the artifacts from parital null-space bases
+                p = p[:, :keep]
+                q = q[:, :keep]
+                work = p.conj() @ q.T @ work
+        ps.reverse()
+        qs.reverse()
+        return ps, qs
