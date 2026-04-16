@@ -92,8 +92,6 @@ class _CanonicalMPS:
             u, s, v = trg_utils.tsvd(work, (0, 1), (2,))
             self.us.append(u)
             work = np.einsum("bj,ij,aic->abc", np.diag(s), v, self.ts[i + 1])
-        assert s is not None
-        self.ss.append(s)  # Store the raw singular values
         return work
 
     def _backward(self, work: npt.NDArray[Any]) -> None:

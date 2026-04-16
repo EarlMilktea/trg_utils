@@ -58,6 +58,9 @@ class TestCanonicalMPS:
         psi = _CanonicalMPS.from_ts(mps._attach_dummy(ts))
         assert psi.n == len(ts)
         assert psi.ts is not ts
+        assert len(psi.us) == len(ts) - 1
+        assert len(psi.vs) == len(ts) - 1
+        assert len(psi.ss) == len(ts) - 1
 
     @given(ts=conftest.random_mps(3))
     def test_svd_exact_3(self, ts: list[npt.NDArray[np.complex128]]) -> None:
