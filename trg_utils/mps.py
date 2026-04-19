@@ -142,32 +142,31 @@ class _CanonicalMPS:
             prefix[i] = prefix[i] @ g  # noqa: PLR6104 (shape change required)
         return prefix
 
+    def _suffix(self) -> list[npt.NDArray[Any]]:
+        suffix: list[npt.NDArray[Any]] = [np.eye(1)]
+        for t, v in zip(reversed(self.ts), reversed(self.vs), strict=False):
+            suffix.append(np.einsum("aib,bc,ajc->ij", t.conj(), suffix[-1], v))
+        return suffix
+
     def projectors(self) -> tuple[list[npt.NDArray[Any]], list[npt.NDArray[Any]]]:
         ps: list[npt.NDArray[Any]] = []
         qs: list[npt.NDArray[Any]] = []
+        # MEMO: No truncation required for T (only V)
         prefix = self._prefix()
-        work = np.eye(1)
-        suffix = [work]
-        for ls, (t, v) in enumerate(zip(reversed(self.ts), reversed(self.vs), strict=False), start=1):
-            work = np.einsum("aib,bc,ajc->ij", t.conj(), work, v)
-            suffix.append(work)
-            rank, iw = self._isqrt(self.ss[-ls])
+        suffix = self._suffix()
+        for lp, s in enumerate(self.ss, start=1):
+            rank, iw = self._isqrt(s)
             if rank > 0:
                 iw = np.diag(iw)
-                p = (suffix[ls].conj() @ iw)[:, :rank]
-                q = (prefix[self.n - ls] @ iw)[:, :rank]
+                p = (suffix[self.n - lp].conj() @ iw)[:, :rank]
+                q = (prefix[lp] @ iw)[:, :rank]
                 p, q = projector.extend(p, q)
             else:
-                d, _ = suffix[ls].shape
+                d, _ = prefix[lp].shape
                 p = np.eye(d)
                 q = np.eye(d)
             ps.append(p)
             qs.append(q)
-            if self.chi is not None:
-                keep = min(self.chi, rank)  # MEMO: Eliminate the artifacts from parital null-space bases
-                p = p[:, :keep]
-                q = q[:, :keep]
-                work = p.conj() @ q.T @ work
         ps.reverse()
         qs.reverse()
         return ps, qs
