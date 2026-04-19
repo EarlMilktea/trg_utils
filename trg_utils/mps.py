@@ -11,8 +11,7 @@ from typing import Any, NamedTuple, TypeVar
 import numpy as np
 import numpy.typing as npt
 
-import trg_utils
-from trg_utils import projector
+from trg_utils import decomp, projector
 
 _T = TypeVar("_T", bound=np.generic)
 
@@ -87,14 +86,14 @@ class _CanonicalMPS:
         work = self.ts[0]
         s: npt.NDArray[Any] | None = None
         for i in range(self.n - 1):
-            u, s, v = trg_utils.tsvd(work, (0, 1), (2,))
+            u, s, v = decomp.tsvd(work, (0, 1), (2,))
             self.us.append(u)
             work = np.einsum("bj,ij,aic->abc", np.diag(s), v, self.ts[i + 1])
         return work
 
     def _backward(self, work: npt.NDArray[Any]) -> None:
         for i in reversed(range(self.n - 1)):
-            gauge, s, v = trg_utils.tsvd(work, (1,), (0, 2))
+            gauge, s, v = decomp.tsvd(work, (1,), (0, 2))
             self.gauge.append(gauge)
             self.ss.append(s)  # Store the raw singular values
             self.vs.append(v.transpose(0, 2, 1))  # Adjust leg order

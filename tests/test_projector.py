@@ -11,9 +11,8 @@ import pytest
 from hypothesis import given
 from hypothesis.strategies import DrawFn, SearchStrategy
 
-import trg_utils
 from tests import conftest
-from trg_utils import projector
+from trg_utils import merge, projector
 
 
 def pdot(lhs: npt.NDArray[Any], rhs: npt.NDArray[Any]) -> npt.NDArray[Any]:
@@ -29,8 +28,8 @@ def _pq(d_outer: int) -> SearchStrategy[tuple[npt.NDArray[np.complex128], npt.ND
         x = draw(conftest.almost_diagonal(extra))
         r = draw(st.integers(1, extra))
         ix = np.linalg.inv(x)
-        p = trg_utils.ungroup(x[:, :r], (0, shapes))
-        q = trg_utils.ungroup((ix.T.conj())[:, :r], (0, shapes)).astype(np.complex128, copy=False)
+        p = merge.ungroup(x[:, :r], (0, shapes))
+        q = merge.ungroup((ix.T.conj())[:, :r], (0, shapes)).astype(np.complex128, copy=False)
         assert p.shape == (*shapes, r)
         assert q.shape == (*shapes, r)
         return p, q
