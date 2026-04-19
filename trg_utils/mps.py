@@ -193,10 +193,12 @@ def optimize(
     projectors: list[_ProjectorResult] = []
     spq = mps.projectors()
     for s, p, q in spq:
-        d, _ = s.shape
+        d, _ = p.shape
         projectors.append(_ProjectorResult(np.pad(s, (0, d - s.size)), *projector.extend(p, q)))
     dummy: npt.NDArray[Any] = np.eye(1)
     ps = [*(val.p for val in spq), dummy]
     qs = [dummy, *(val.q for val in spq)]
-    compressed = [np.einsum("iab,aj,bk->ijk", t, p, q)[:, :chi, :chi] for (t, p, q) in zip(ts_3, ps, qs, strict=True)]
+    compressed = [
+        np.einsum("iab,aj,bk->ijk", t, q.conj(), p)[:, :chi, :chi] for (t, p, q) in zip(ts_3, ps, qs, strict=True)
+    ]
     return _detach_dummy(compressed), projectors
