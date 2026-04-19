@@ -28,9 +28,9 @@ def extend(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], 
     Returns
     -------
     pex : `numpy.ndarray`
-        `p` extended to a full-rank isometry.
+        ``p`` extended to a full-rank isometry.
     qex : `numpy.ndarray`
-        `q` extended to a full-rank isometry.
+        ``q`` extended to a full-rank isometry.
 
     Notes
     -----
@@ -99,7 +99,7 @@ def normalize(
         Right projector.
     mode
         Normalization mode.
-        If `"local"`, each pair of vectors will have the same norm. If `"global"`, the entire projectors are used.
+        If ``"local"``, each pair of vectors will have the same norm. If ``"global"``, the entire projectors are used.
 
     Returns
     -------
@@ -111,7 +111,7 @@ def normalize(
     Raises
     ------
     ValueError
-        If `mode` is invalid.
+        If ``mode`` is invalid.
 
     Notes
     -----
