@@ -242,3 +242,34 @@ class TestCanonicalMPS:
             np.einsum("iab,jbc,kcm,al->ijklm", *vs, w),
             atol=1e-10,
         )
+
+
+class TestOptimize:
+    @given(ts=conftest.random_mps(4))
+    def test_compressed_exact(self, ts: list[npt.NDArray[np.complex128]]) -> None:
+        comp, _ = mps.optimize(ts)
+        orig = np.einsum("ia,jab,kbc,lc->ijkl", *ts)
+        res = np.einsum("ia,jab,kbc,lc->ijkl", *comp)
+        np.testing.assert_allclose(res, orig, atol=1e-10)
+
+    @given(ts=conftest.random_mps(4))
+    @pytest.mark.parametrize("chi", [1, 5, 10, 50])
+    def test_compressed_trunc(self, ts: list[npt.NDArray[np.complex128]], chi: int) -> None:
+        comp, _ = mps.optimize(ts, chi)
+        for t, tc in zip(ts, comp, strict=True):
+            assert t.shape[0] == tc.shape[0]
+            assert all(d <= chi for d in tc.shape[1:])
+
+    @given(ts=conftest.random_mps(4))
+    @pytest.mark.parametrize("chi", [None, 1])
+    def test_proj(self, ts: list[npt.NDArray[np.complex128]], chi: int | None) -> None:
+        _, proj = mps.optimize(ts, chi)
+        for s, p, q in proj:
+            d = s.size
+            assert s.shape == (d,)
+            assert np.all(s >= 0)
+            assert np.all(np.sort(s)[::-1] == s)
+            assert p.shape == (d, d)
+            assert q.shape == (d, d)
+            np.testing.assert_allclose(q.T.conj() @ p, np.eye(d), atol=1e-5)
+            np.testing.assert_allclose(p @ q.T.conj(), np.eye(d), atol=1e-5)
