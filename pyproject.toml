@@ -7,7 +7,7 @@ name = "trg_utils"
 license-files = ["LICENSE"]
 requires-python = ">=3.10,<3.15"
 dynamic = ["version"]
-dependencies = ["numpy"]
+dependencies = ["numpy", "scipy"]
 
 [project.optional-dependencies]
 dev = [
@@ -18,6 +18,7 @@ dev = [
   "pytest-cov",
   "pytest-xdist",
   "ruff",
+  "scipy-stubs",
 ]
 doc = ["furo", "sphinx"]
 
