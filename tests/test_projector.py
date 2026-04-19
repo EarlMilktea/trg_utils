@@ -11,9 +11,8 @@ import pytest
 from hypothesis import given
 from hypothesis.strategies import DrawFn, SearchStrategy
 
-import trg_utils
 from tests import conftest
-from trg_utils import projector
+from trg_utils import merge, projector
 
 
 def pdot(lhs: npt.NDArray[Any], rhs: npt.NDArray[Any]) -> npt.NDArray[Any]:
@@ -29,8 +28,8 @@ def _pq(d_outer: int) -> SearchStrategy[tuple[npt.NDArray[np.complex128], npt.ND
         x = draw(conftest.almost_diagonal(extra))
         r = draw(st.integers(1, extra))
         ix = np.linalg.inv(x)
-        p = trg_utils.ungroup(x[:, :r], (0, shapes))
-        q = trg_utils.ungroup((ix.T.conj())[:, :r], (0, shapes)).astype(np.complex128, copy=False)
+        p = merge.ungroup(x[:, :r], (0, shapes))
+        q = merge.ungroup((ix.T.conj())[:, :r], (0, shapes)).astype(np.complex128, copy=False)
         assert p.shape == (*shapes, r)
         assert q.shape == (*shapes, r)
         return p, q
@@ -47,10 +46,24 @@ class TestExtend:
             projector.extend(np.zeros((9,)), np.zeros((9,)))
 
         with pytest.raises(ValueError, match=r"empty"):
-            projector.extend(np.zeros((9, 0)), np.zeros((9, 0)))
+            projector.extend(np.zeros((1, 0, 0)), np.zeros((1, 0, 0)))
 
         with pytest.raises(ValueError, match=r"smaller"):
             projector.extend(np.zeros((2, 2, 9)), np.zeros((2, 2, 9)))
+
+    def test_extend_full(self) -> None:
+        p = np.eye(9).reshape((3, 3, 9))
+        q = np.eye(9).reshape((3, 3, 9))
+        pex, qex = projector.extend(p, q)
+        np.testing.assert_allclose(pex, p)
+        np.testing.assert_allclose(qex, q)
+
+    def test_extend_empty(self) -> None:
+        p = np.zeros((3, 3, 0))
+        q = np.zeros((3, 3, 0))
+        pex, qex = projector.extend(p, q)
+        np.testing.assert_allclose(pex, np.eye(9).reshape((3, 3, 9)))
+        np.testing.assert_allclose(qex, np.eye(9).reshape((3, 3, 9)))
 
     @given(pq=_pq(1))
     def test_extend_2d(self, pq: tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]) -> None:
@@ -91,6 +104,9 @@ class TestNormalize:
     def test_normalize_ng(self) -> None:
         with pytest.raises(ValueError, match=r"Invalid mode"):
             projector.normalize(np.zeros((9, 1)), np.zeros((9, 1)), mode="invalid")  # type: ignore[arg-type]
+
+        with pytest.raises(ValueError, match=r"non-empty"):
+            projector.normalize(np.zeros((9, 0)), np.zeros((9, 0)), mode="local")
 
     @given(pq=_pq_dummy())
     def test_normalize_local(self, pq: tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]) -> None:

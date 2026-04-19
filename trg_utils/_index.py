@@ -73,17 +73,20 @@ def assert_span(d: int, *inds: int | tuple[int, ...]) -> None:
         raise ValueError(msg)
 
 
-def assert_pshapes(p: tuple[int, ...], q: tuple[int, ...]) -> None:
+def assert_pshapes(p: tuple[int, ...], q: tuple[int, ...], *, allow_empty: bool = False) -> None:
     if p != q:
         msg = "Inconsistent shapes."
         raise ValueError(msg)
     if len(p) <= 1:
         msg = "Must have at least two legs."
         raise ValueError(msg)
-    if math.prod(p) == 0:
-        msg = "All the legs must be non-empty."
-        raise ValueError(msg)
     *head, tail = p
+    if math.prod(head) == 0:
+        msg = "All the non-projected legs must be non-empty."
+        raise ValueError(msg)
     if math.prod(head) < tail:
         msg = "Projected dimension (last) must be smaller than the original (rest)."
+        raise ValueError(msg)
+    if not allow_empty and tail == 0:
+        msg = "Projected dimension must be non-empty."
         raise ValueError(msg)
