@@ -16,14 +16,13 @@ from __future__ import annotations
 import copy
 import dataclasses
 import itertools
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from typing import Any, NamedTuple, TypeVar
 
 import numpy as np
 import numpy.typing as npt
 
 import trg_utils
-from trg_utils import projector
 
 _T = TypeVar("_T", bound=np.generic)
 
@@ -51,7 +50,7 @@ def _attach_dummy(ts: Sequence[npt.NDArray[_T]]) -> list[npt.NDArray[_T]]:
     return ret
 
 
-def _detach_dummy(ts: Sequence[npt.NDArray[_T]]) -> list[npt.NDArray[_T]]:
+def _detach_dummy(ts: Iterable[npt.NDArray[_T]]) -> list[npt.NDArray[_T]]:
     head, *mid, tail = ts
     return [
         head[:, 0, :],
@@ -82,11 +81,12 @@ class _CanonicalMPS:
         assert self.n >= 2
         assert self.chi is None or self.chi > 0
 
-    def _trunc(self, s: npt.NDArray[Any]) -> npt.NDArray[Any]:
-        if self.chi is not None:
-            s = s.copy()
-            s[self.chi :] = 0
-        return s
+    def trunc(self, arr: npt.NDArray[Any]) -> npt.NDArray[Any]:
+        if self.chi is None:
+            return arr
+        arr = arr.copy()
+        arr[..., self.chi :] = 0
+        return arr
 
     @property
     def n(self) -> int:
@@ -107,7 +107,7 @@ class _CanonicalMPS:
             self.gauge.append(gauge)
             self.ss.append(s)  # Store the raw singular values
             self.vs.append(v.transpose(0, 2, 1))  # Adjust leg order
-            work = np.einsum("abi,ij,jc->abc", self.us[i], gauge, np.diag(self._trunc(s)))
+            work = np.einsum("abi,ij,jc->abc", self.us[i], gauge, np.diag(self.trunc(s)))
         self.gauge.reverse()
         self.ss.reverse()
         self.vs.reverse()
@@ -132,13 +132,12 @@ class _CanonicalMPS:
         return us, s, vs
 
     @staticmethod
-    def _isqrt(s: npt.NDArray[Any], rtol: float = 1e-14) -> tuple[int, npt.NDArray[Any]]:
+    def _safe_isqrt(s: npt.NDArray[Any], rtol: float = 1e-14, atol: float = 1e-15) -> npt.NDArray[Any]:
         assert s.ndim == 1
-        rank = int(np.count_nonzero(s > rtol * s.max()))
-        ret = np.zeros_like(s)
-        if rank > 0:
-            ret[:rank] = 1 / np.sqrt(s[:rank])
-        return rank, ret
+        rank_abs = int(np.count_nonzero(s > atol))
+        rank_rel = int(np.count_nonzero(s > rtol * s.max()))
+        rank = min(rank_abs, rank_rel)
+        return np.asarray(1 / np.sqrt(s[:rank]))
 
     def _prefix(self) -> list[npt.NDArray[Any]]:
         prefix: list[npt.NDArray[Any]] = [np.eye(1)]
@@ -160,17 +159,10 @@ class _CanonicalMPS:
         prefix = self._prefix()
         suffix = self._suffix()
         for lp, s in enumerate(self.ss, start=1):
-            rank, iw = self._isqrt(s)
-            if rank > 0:
-                iw = np.diag(iw)
-                p = (suffix[self.n - lp].conj() @ iw)[:, :rank]
-                q = (prefix[lp] @ iw)[:, :rank]
-                p, q = projector.extend(p, q)
-            else:
-                d, _ = prefix[lp].shape
-                p = np.eye(d)
-                q = np.eye(d)
-            s_cut = s.copy()
-            s_cut[rank:] = 0
-            ret.append(_ProjectorResult(s_cut, p, q))
+            iw = self._safe_isqrt(s)
+            rank = iw.size
+            iw = np.diag(iw)
+            p = suffix[self.n - lp].conj()[:, :rank] @ iw
+            q = prefix[lp][:, :rank] @ iw
+            ret.append(_ProjectorResult(s[:rank], p, q))
         return ret
