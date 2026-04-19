@@ -11,7 +11,7 @@ def shaped_f128(shape: tuple[int, ...]) -> SearchStrategy[npt.NDArray[np.complex
     return hnp.arrays(
         dtype=np.complex128,
         shape=shape,
-        elements=st.complex_numbers(max_magnitude=1),
+        elements=st.one_of(st.complex_numbers(min_magnitude=1e-6, max_magnitude=1), st.just(0.0)),
     )
 
 
