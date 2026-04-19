@@ -245,6 +245,10 @@ class TestCanonicalMPS:
 
 
 class TestOptimize:
+    def test_chi_ng(self) -> None:
+        with pytest.raises(ValueError, match=r"positive"):
+            mps.optimize([np.zeros((2, 2)), np.zeros((2, 2))], chi=0)
+
     @given(ts=conftest.random_mps(4))
     def test_compressed_exact(self, ts: list[npt.NDArray[np.complex128]]) -> None:
         comp, _ = mps.optimize(ts)
