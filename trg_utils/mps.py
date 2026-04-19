@@ -90,7 +90,7 @@ class _CanonicalMPS:
         for i in range(self.n - 1):
             u, s, v = decomp.tsvd(work, (0, 1), (2,))
             self.us.append(u)
-            work = np.einsum("ij,aic->ajc", v * s[:, np.newaxis], self.ts[i + 1])
+            work = np.einsum("b,ib,aic->abc", s, v, self.ts[i + 1])
         return work
 
     def _backward(self, work: npt.NDArray[Any]) -> None:
