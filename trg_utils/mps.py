@@ -17,7 +17,7 @@ import copy
 import dataclasses
 import itertools
 from collections.abc import Sequence
-from typing import Any, TypeVar
+from typing import Any, NamedTuple, TypeVar
 
 import numpy as np
 import numpy.typing as npt
@@ -58,6 +58,12 @@ def _detach_dummy(ts: Sequence[npt.NDArray[_T]]) -> list[npt.NDArray[_T]]:
         *mid,
         tail[:, :, 0],
     ]
+
+
+class _ProjectorResult(NamedTuple):
+    s: npt.NDArray[Any]
+    p: npt.NDArray[Any]
+    q: npt.NDArray[Any]
 
 
 @dataclasses.dataclass
@@ -148,9 +154,8 @@ class _CanonicalMPS:
             suffix.append(np.einsum("aib,bc,ajc->ij", t.conj(), suffix[-1], v))
         return suffix
 
-    def projectors(self) -> tuple[list[npt.NDArray[Any]], list[npt.NDArray[Any]]]:
-        ps: list[npt.NDArray[Any]] = []
-        qs: list[npt.NDArray[Any]] = []
+    def projectors(self) -> list[_ProjectorResult]:
+        ret: list[_ProjectorResult] = []
         # MEMO: No truncation required for T (only V)
         prefix = self._prefix()
         suffix = self._suffix()
@@ -165,8 +170,7 @@ class _CanonicalMPS:
                 d, _ = prefix[lp].shape
                 p = np.eye(d)
                 q = np.eye(d)
-            ps.append(p)
-            qs.append(q)
-        ps.reverse()
-        qs.reverse()
-        return ps, qs
+            s_cut = s.copy()
+            s_cut[rank:] = 0
+            ret.append(_ProjectorResult(s_cut, p, q))
+        return ret
