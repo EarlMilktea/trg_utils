@@ -65,12 +65,15 @@ class _ProjectorResult(NamedTuple):
     q: npt.NDArray[Any]
 
 
+_CHI_INF = 10**17
+
+
 @dataclasses.dataclass
 class _CanonicalMPS:
     """Left/right canonical MPS with dummy legs."""
 
     ts: list[npt.NDArray[Any]]
-    chi: int | None
+    chi: int
     ss: list[npt.NDArray[Any]] = dataclasses.field(default_factory=list)
     us: list[npt.NDArray[Any]] = dataclasses.field(default_factory=list)
     vs: list[npt.NDArray[Any]] = dataclasses.field(default_factory=list)
@@ -79,11 +82,9 @@ class _CanonicalMPS:
 
     def __post_init__(self) -> None:
         assert self.n >= 2
-        assert self.chi is None or self.chi > 0
+        assert self.chi > 0
 
     def zerofill(self, arr: npt.NDArray[Any]) -> npt.NDArray[Any]:
-        if self.chi is None:
-            return arr
         arr = arr.copy()
         arr[..., self.chi :] = 0
         return arr
@@ -114,8 +115,9 @@ class _CanonicalMPS:
 
     @staticmethod
     def from_ts(ts_3: Sequence[npt.NDArray[Any]], chi: int | None = None) -> _CanonicalMPS:
-        ts_3 = [t.copy() for t in ts_3]
-        mps = _CanonicalMPS(ts_3, chi)
+        if chi is None:
+            chi = _CHI_INF
+        mps = _CanonicalMPS([t.copy() for t in ts_3], chi)
         work = mps._forward()
         mps._backward(work)
         return mps
