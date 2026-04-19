@@ -208,7 +208,7 @@ class TestCanonicalMPS:
             np.einsum("iak,aj->ijk", *vs, w),
             atol=1e-10,
         )
-        proj_2 = psi.trunc(p2) @ psi.trunc(q2).T.conj()
+        proj_2 = psi.zerofill(p2) @ psi.zerofill(q2).T.conj()
 
         s1, p1, q1 = res[1]
         rank = s1.size
@@ -225,7 +225,7 @@ class TestCanonicalMPS:
             np.einsum("iab,jbl,ak->ijkl", *vs, w),
             atol=1e-10,
         )
-        proj_1 = psi.trunc(p1) @ psi.trunc(q1).T.conj()
+        proj_1 = psi.zerofill(p1) @ psi.zerofill(q1).T.conj()
 
         s0, p0, q0 = res[0]
         rank = s0.size

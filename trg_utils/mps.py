@@ -81,7 +81,7 @@ class _CanonicalMPS:
         assert self.n >= 2
         assert self.chi is None or self.chi > 0
 
-    def trunc(self, arr: npt.NDArray[Any]) -> npt.NDArray[Any]:
+    def zerofill(self, arr: npt.NDArray[Any]) -> npt.NDArray[Any]:
         if self.chi is None:
             return arr
         arr = arr.copy()
@@ -107,7 +107,7 @@ class _CanonicalMPS:
             self.gauge.append(gauge)
             self.ss.append(s)  # Store the raw singular values
             self.vs.append(v.transpose(0, 2, 1))  # Adjust leg order
-            work = np.einsum("abi,ij,jc->abc", self.us[i], gauge, np.diag(self.trunc(s)))
+            work = np.einsum("abi,ij,jc->abc", self.us[i], gauge, np.diag(self.zerofill(s)))
         self.gauge.reverse()
         self.ss.reverse()
         self.vs.reverse()
