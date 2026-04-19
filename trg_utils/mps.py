@@ -168,13 +168,13 @@ def optimize(
     ----------
     ts
         The input MPS tensors.
-            * Tensors are given as a sequence of `numpy.ndarray` objects.
-            * At least two tensors are required.
-            * ``ts[i].ndim`` must be ``2`` for ``i == 0`` and ``i == len(ts) - 1``, and must be ``3`` otherwise.
-            * Tensors are indexed as ``ts[i][open, minus, plus]`` where ``open`` is the open leg, \
+            - Tensors are given as a sequence of `numpy.ndarray` objects.
+            - At least two tensors are required.
+            - ``ts[i].ndim`` must be ``2`` for ``i == 0`` and ``i == len(ts) - 1``, and must be ``3`` otherwise.
+            - Tensors are indexed as ``ts[i][open, minus, plus]`` where ``open`` is the open leg, \
             ``minus`` is the closed leg tied to ``ts[i - 1]``, and ``plus`` is tied to ``ts[i + 1]``. \
             ``minus`` or ``plus`` are ignored in the edge tensors.
-            * All the closed legs must have coherent dimensions.
+            - All the closed legs must have coherent dimensions.
     chi
         The maximum bond dimension allowed. If `None`, treated as infinity.
 
