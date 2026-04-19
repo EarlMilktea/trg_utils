@@ -19,7 +19,9 @@ def pdot(lhs: npt.NDArray[Any], rhs: npt.NDArray[Any]) -> npt.NDArray[Any]:
     return np.tensordot(lhs, rhs, (range(lhs.ndim - 1), range(rhs.ndim - 1)))
 
 
-def _pq(d_outer: int) -> SearchStrategy[tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]]:
+def _pq(
+    d_outer: int, noise: float = 0.0
+) -> SearchStrategy[tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]]:
 
     @st.composite
     def _inner(draw: DrawFn) -> tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]:
@@ -32,6 +34,8 @@ def _pq(d_outer: int) -> SearchStrategy[tuple[npt.NDArray[np.complex128], npt.ND
         q = merge.ungroup((ix.T.conj())[:, :r], (0, shapes)).astype(np.complex128, copy=False)
         assert p.shape == (*shapes, r)
         assert q.shape == (*shapes, r)
+        p += draw(conftest.shaped_f128(p.shape)) * noise
+        q += draw(conftest.shaped_f128(q.shape)) * noise
         return p, q
 
     return _inner()
@@ -133,3 +137,31 @@ class TestNormalize:
         q = np.zeros((2, 2))
         with pytest.raises(AssertionError):
             projector.normalize(p, q, mode=mode)
+
+
+class TestRefine:
+    def test_refine_ng(self) -> None:
+        with pytest.raises(ValueError, match=r"non-empty"):
+            projector.refine(np.zeros((9, 0)), np.zeros((9, 0)))
+
+    def test_no_op(self) -> None:
+        p = np.eye(9).reshape((3, 3, 9))
+        q = np.eye(9).reshape((3, 3, 9))
+        p_ref, q_ref = projector.refine(p, q)
+        np.testing.assert_allclose(p_ref, p)
+        np.testing.assert_allclose(q_ref, q)
+
+    @given(pq=_pq(3, 1e-3))
+    def test_refine(self, pq: tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]) -> None:
+        p, q = pq
+        *_, chi = p.shape
+        p_ref, q_ref = projector.refine(p, q)
+        assert p_ref.shape == p.shape
+        assert q_ref.shape == q.shape
+        np.testing.assert_allclose(pdot(p_ref, q_ref.conj()), np.eye(chi), atol=1e-12)
+
+    def test_refine_pivot(self) -> None:
+        p = np.eye(2)
+        q = np.asarray([[0, 1], [1, 0]])
+        with pytest.raises(ValueError, match=r"Pivoting required"):
+            projector.refine(p, q)
