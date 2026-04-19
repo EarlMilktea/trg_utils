@@ -38,7 +38,7 @@ def extend(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], 
     """
     sp: tuple[int, ...] = p.shape
     sq: tuple[int, ...] = q.shape
-    _index.assert_pshapes(sp, sq)
+    _index.assert_pshapes(sp, sq, allow_empty=True)
     p = merge.group(p, (range(p.ndim - 1), -1))
     q = merge.group(q, (range(q.ndim - 1), -1))
     d: int

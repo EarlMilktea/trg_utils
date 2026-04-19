@@ -105,6 +105,9 @@ class TestNormalize:
         with pytest.raises(ValueError, match=r"Invalid mode"):
             projector.normalize(np.zeros((9, 1)), np.zeros((9, 1)), mode="invalid")  # type: ignore[arg-type]
 
+        with pytest.raises(ValueError, match=r"non-empty"):
+            projector.normalize(np.zeros((9, 0)), np.zeros((9, 0)), mode="local")
+
     @given(pq=_pq_dummy())
     def test_normalize_local(self, pq: tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]) -> None:
         # MEMO: Invalid input for dirty testing

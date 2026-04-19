@@ -71,7 +71,9 @@ class _CanonicalMPS:
 
     def __post_init__(self) -> None:
         assert self.n >= 2
-        assert self.chi > 0
+        if self.chi <= 0:
+            msg = "chi must be positive."
+            raise ValueError(msg)
 
     def zerofill(self, arr: npt.NDArray[Any]) -> npt.NDArray[Any]:
         arr = arr.copy()
