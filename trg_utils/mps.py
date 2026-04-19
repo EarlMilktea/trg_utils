@@ -1,15 +1,4 @@
-"""Optimize MPS by locally-optimal global SVDs.
-
-Thoroughout this module, MPSs are assumed to have these conventions:
-
-- Tensors are given as a sequence of `numpy.ndarray` objects (denoted as ``ts``).
-- At least two tensors are required.
-- ``ts[i].ndim`` must be ``2`` for ``i == 0`` and ``i == len(ts) - 1``, and must be ``3`` otherwise.
-- Tensors are indexed as ``ts[i][open, minus, plus]`` where ``open`` is the open leg, \
-  ``minus`` is the closed leg tied to ``ts[i - 1]``, and ``plus`` is tied to ``ts[i + 1]``. \
-  ``minus`` or ``plus`` are ignored in the edge tensors.
-- All the closed legs must have coherent dimensions.
-"""
+"""Optimize MPS by locally-optimal global SVDs."""
 
 from __future__ import annotations
 
@@ -23,6 +12,7 @@ import numpy as np
 import numpy.typing as npt
 
 import trg_utils
+from trg_utils import projector
 
 _T = TypeVar("_T", bound=np.generic)
 
@@ -168,3 +158,46 @@ class _CanonicalMPS:
             q = prefix[lp][:, :rank] @ iw
             ret.append(_ProjectorResult(s[:rank], p, q))
         return ret
+
+
+def optimize(
+    ts: Sequence[npt.NDArray[Any]], chi: int | None = None
+) -> tuple[list[npt.NDArray[Any]], list[_ProjectorResult]]:
+    """Optimize MPS by SVD canonicalization and oblique projection.
+
+    Parameters
+    ----------
+    ts
+        The input MPS tensors.
+            * Tensors are given as a sequence of `numpy.ndarray` objects.
+            * At least two tensors are required.
+            * ``ts[i].ndim`` must be ``2`` for ``i == 0`` and ``i == len(ts) - 1``, and must be ``3`` otherwise.
+            * Tensors are indexed as ``ts[i][open, minus, plus]`` where ``open`` is the open leg, \
+            ``minus`` is the closed leg tied to ``ts[i - 1]``, and ``plus`` is tied to ``ts[i + 1]``. \
+            ``minus`` or ``plus`` are ignored in the edge tensors.
+            * All the closed legs must have coherent dimensions.
+    chi
+        The maximum bond dimension allowed. If `None`, treated as infinity.
+
+    Returns
+    -------
+    compressed
+        The compressed MPS tensors.
+        Its internal bond dimensions are truncated to at most ``chi``.
+        Its external bond dimensions are unchanged.
+    projectors
+        Projector information for each internal bond.
+    """
+    ts_3 = _attach_dummy(ts)
+    mps = _CanonicalMPS.from_ts(ts_3, chi)
+    chi = mps.chi
+    projectors: list[_ProjectorResult] = []
+    spq = mps.projectors()
+    for s, p, q in spq:
+        d, _ = s.shape
+        projectors.append(_ProjectorResult(np.pad(s, (0, d - s.size)), *projector.extend(p, q)))
+    dummy: npt.NDArray[Any] = np.eye(1)
+    ps = [*(val.p for val in spq), dummy]
+    qs = [dummy, *(val.q for val in spq)]
+    compressed = [np.einsum("iab,aj,bk->ijk", t, p, q)[:, :chi, :chi] for (t, p, q) in zip(ts_3, ps, qs, strict=True)]
+    return _detach_dummy(compressed), projectors
