@@ -47,10 +47,24 @@ class TestExtend:
             projector.extend(np.zeros((9,)), np.zeros((9,)))
 
         with pytest.raises(ValueError, match=r"empty"):
-            projector.extend(np.zeros((9, 0)), np.zeros((9, 0)))
+            projector.extend(np.zeros((1, 0, 0)), np.zeros((1, 0, 0)))
 
         with pytest.raises(ValueError, match=r"smaller"):
             projector.extend(np.zeros((2, 2, 9)), np.zeros((2, 2, 9)))
+
+    def test_extend_full(self) -> None:
+        p = np.eye(9).reshape((3, 3, 9))
+        q = np.eye(9).reshape((3, 3, 9))
+        pex, qex = projector.extend(p, q)
+        np.testing.assert_allclose(pex, p)
+        np.testing.assert_allclose(qex, q)
+
+    def test_extend_empty(self) -> None:
+        p = np.zeros((3, 3, 0))
+        q = np.zeros((3, 3, 0))
+        pex, qex = projector.extend(p, q)
+        np.testing.assert_allclose(pex, np.eye(9).reshape((3, 3, 9)))
+        np.testing.assert_allclose(qex, np.eye(9).reshape((3, 3, 9)))
 
     @given(pq=_pq(1))
     def test_extend_2d(self, pq: tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]) -> None:

@@ -80,10 +80,10 @@ def assert_pshapes(p: tuple[int, ...], q: tuple[int, ...]) -> None:
     if len(p) <= 1:
         msg = "Must have at least two legs."
         raise ValueError(msg)
-    if math.prod(p) == 0:
-        msg = "All the legs must be non-empty."
-        raise ValueError(msg)
     *head, tail = p
+    if math.prod(head) == 0:
+        msg = "All the non-projected legs must be non-empty."
+        raise ValueError(msg)
     if math.prod(head) < tail:
         msg = "Projected dimension (last) must be smaller than the original (rest)."
         raise ValueError(msg)

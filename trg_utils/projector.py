@@ -31,6 +31,11 @@ def extend(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], 
         `p` extended to a full-rank isometry.
     qex : `numpy.ndarray`
         `q` extended to a full-rank isometry.
+
+    Notes
+    -----
+    Biorthonormality is not validated.
+    If both projectors are empty, returns identity matrices.
     """
     sp: tuple[int, ...] = p.shape
     sq: tuple[int, ...] = q.shape
@@ -42,6 +47,8 @@ def extend(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], 
     d, r = p.shape
     rc = d - r
     proj_c = np.eye(d) - p @ q.T.conj()
+    if rc == 0:
+        proj_c[...] = 0  # Eliminate numerical noise
     # Construct the dual bases of the perpendicular complement
     u, s, vh = np.linalg.svd(proj_c)
     w = np.diag(np.sqrt(s))
