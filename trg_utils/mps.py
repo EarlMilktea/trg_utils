@@ -90,7 +90,7 @@ class _CanonicalMPS:
         for i in range(self.n - 1):
             u, s, v = decomp.tsvd(work, (0, 1), (2,))
             self.us.append(u)
-            work = np.einsum("bj,ij,aic->abc", np.diag(s), v, self.ts[i + 1])
+            work = np.einsum("ij,aic->ajc", v * s[:, np.newaxis], self.ts[i + 1])
         return work
 
     def _backward(self, work: npt.NDArray[Any]) -> None:
@@ -99,7 +99,7 @@ class _CanonicalMPS:
             self.gauge.append(gauge)
             self.ss.append(s)  # Store the raw singular values
             self.vs.append(v.transpose(0, 2, 1))  # Adjust leg order
-            work = np.einsum("abi,ij,jc->abc", self.us[i], gauge, np.diag(self.zerofill(s)))
+            work = np.einsum("abi,ij,j->abj", self.us[i], gauge, self.zerofill(s))
         self.gauge.reverse()
         self.ss.reverse()
         self.vs.reverse()
@@ -154,9 +154,8 @@ class _CanonicalMPS:
         for lp, s in enumerate(self.ss, start=1):
             iw = self._safe_isqrt(s)
             rank = iw.size
-            iw = np.diag(iw)
-            p = suffix[self.n - lp].conj()[:, :rank] @ iw
-            q = prefix[lp][:, :rank] @ iw
+            p = suffix[self.n - lp].conj()[:, :rank] * iw
+            q = prefix[lp][:, :rank] * iw
             ret.append(_ProjectorResult(s[:rank], p, q))
         return ret
 
