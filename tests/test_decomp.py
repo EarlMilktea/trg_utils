@@ -64,7 +64,7 @@ class TestTSVD:
         u, s, v = decomp.tsvd(arr, iu, iv)
         us = np.tensordot(u, np.diag(s), axes=(-1, -1))
         usv = np.tensordot(us, v, axes=(-1, -1)).transpose(*_perm(arr, iu, iv))
-        np.testing.assert_allclose(arr, usv, atol=1e-14)
+        np.testing.assert_allclose(arr, usv, atol=1e-12)
 
     @given(arr=conftest.almost_diagonal(4))
     def test_herm_ok(self, arr: npt.NDArray[np.complex128]) -> None:

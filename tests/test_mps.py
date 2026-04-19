@@ -174,3 +174,71 @@ class TestCanonicalMPS:
         assert self._is_isometry_u(u1)
         assert self._is_isometry_u(u2)
         assert self._is_isometry_v(v3)
+
+    @given(ts=conftest.random_mps(4))
+    @pytest.mark.parametrize("chi", [None, 1])
+    def test_projectors_ortho(self, ts: list[npt.NDArray[np.complex128]], chi: int | None) -> None:
+        ts = mps._attach_dummy(ts)
+        res = _CanonicalMPS.from_ts(ts, chi=chi).projectors()
+        for _, p, q in res:
+            work = q.T.conj() @ p
+            d, _ = work.shape
+            np.testing.assert_allclose(work, np.eye(d), atol=1e-6)
+
+    @given(ts=conftest.random_mps(4))
+    @pytest.mark.parametrize("chi", [None, 1])
+    def test_projectors_intermediate(self, ts: list[npt.NDArray[np.complex128]], chi: int | None) -> None:  # noqa: PLR0914
+        ts = mps._attach_dummy(ts)
+        t0, t1, t2, t3 = ts
+        psi = _CanonicalMPS.from_ts(ts, chi=chi)
+        res = psi.projectors()
+
+        s2, p2, q2 = res[2]
+        rank = s2.size
+        us, s, vs = psi.svd_at(2)
+        np.testing.assert_allclose(s2, s[:rank])
+        w = np.diag(np.sqrt(s))[:, :rank]
+        np.testing.assert_allclose(
+            np.einsum("ila,jab,kbc,cm->ijklm", t0, t1, t2, p2),
+            np.einsum("ila,jab,kbc,cm->ijklm", *us, w),
+            atol=1e-10,
+        )
+        np.testing.assert_allclose(
+            np.einsum("iak,aj->ijk", t3, q2.conj()),
+            np.einsum("iak,aj->ijk", *vs, w),
+            atol=1e-10,
+        )
+        proj_2 = psi.trunc(p2) @ psi.trunc(q2).T.conj()
+
+        s1, p1, q1 = res[1]
+        rank = s1.size
+        us, s, vs = psi.svd_at(1)
+        np.testing.assert_allclose(s1, s[:rank])
+        w = np.diag(np.sqrt(s))[:, :rank]
+        np.testing.assert_allclose(
+            np.einsum("ika,jab,bl->ijkl", t0, t1, p1),
+            np.einsum("ika,jab,bl->ijkl", *us, w),
+            atol=1e-10,
+        )
+        np.testing.assert_allclose(
+            np.einsum("iab,jcl,bc,ak->ijkl", t2, t3, proj_2, q1.conj(), optimize=True),
+            np.einsum("iab,jbl,ak->ijkl", *vs, w),
+            atol=1e-10,
+        )
+        proj_1 = psi.trunc(p1) @ psi.trunc(q1).T.conj()
+
+        s0, p0, q0 = res[0]
+        rank = s0.size
+        us, s, vs = psi.svd_at(0)
+        np.testing.assert_allclose(s0, s[:rank])
+        w = np.diag(np.sqrt(s))[:, :rank]
+        np.testing.assert_allclose(
+            np.einsum("ija,ak->ijk", t0, p0),
+            np.einsum("ija,ak->ijk", *us, w),
+            atol=1e-10,
+        )
+        np.testing.assert_allclose(
+            np.einsum("iab,jcd,kem,bc,de,al->ijklm", t1, t2, t3, proj_1, proj_2, q0.conj(), optimize=True),
+            np.einsum("iab,jbc,kcm,al->ijklm", *vs, w),
+            atol=1e-10,
+        )
