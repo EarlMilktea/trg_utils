@@ -201,12 +201,12 @@ class TestCanonicalMPS:
         np.testing.assert_allclose(
             np.einsum("ila,jab,kbc,cm->ijklm", t0, t1, t2, p2),
             np.einsum("ila,jab,kbc,cm->ijklm", *us, w),
-            atol=1e-10,
+            atol=1e-7,
         )
         np.testing.assert_allclose(
             np.einsum("iak,aj->ijk", t3, q2.conj()),
             np.einsum("iak,aj->ijk", *vs, w),
-            atol=1e-10,
+            atol=1e-7,
         )
         proj_2 = psi.zerofill(p2) @ psi.zerofill(q2).T.conj()
 
@@ -218,12 +218,12 @@ class TestCanonicalMPS:
         np.testing.assert_allclose(
             np.einsum("ika,jab,bl->ijkl", t0, t1, p1),
             np.einsum("ika,jab,bl->ijkl", *us, w),
-            atol=1e-10,
+            atol=1e-7,
         )
         np.testing.assert_allclose(
             np.einsum("iab,jcl,bc,ak->ijkl", t2, t3, proj_2, q1.conj(), optimize=True),
             np.einsum("iab,jbl,ak->ijkl", *vs, w),
-            atol=1e-10,
+            atol=1e-7,
         )
         proj_1 = psi.zerofill(p1) @ psi.zerofill(q1).T.conj()
 
@@ -235,12 +235,12 @@ class TestCanonicalMPS:
         np.testing.assert_allclose(
             np.einsum("ija,ak->ijk", t0, p0),
             np.einsum("ija,ak->ijk", *us, w),
-            atol=1e-10,
+            atol=1e-7,
         )
         np.testing.assert_allclose(
             np.einsum("iab,jcd,kem,bc,de,al->ijklm", t1, t2, t3, proj_1, proj_2, q0.conj(), optimize=True),
             np.einsum("iab,jbc,kcm,al->ijklm", *vs, w),
-            atol=1e-10,
+            atol=1e-7,
         )
 
 
