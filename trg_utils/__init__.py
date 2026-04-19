@@ -8,6 +8,6 @@ from __future__ import annotations
 from trg_utils.decomp import hosvd, tqr, tsvd
 from trg_utils.merge import group, ungroup
 from trg_utils.mps import optimize
-from trg_utils.projector import extend, normalize
+from trg_utils.projector import extend, normalize, refine
 
-__all__ = ["extend", "group", "hosvd", "normalize", "optimize", "tqr", "tsvd", "ungroup"]
+__all__ = ["extend", "group", "hosvd", "normalize", "optimize", "refine", "tqr", "tsvd", "ungroup"]

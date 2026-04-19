@@ -7,6 +7,7 @@ from typing import Any, Literal
 
 import numpy as np
 import numpy.typing as npt
+from scipy import linalg
 
 from trg_utils import _index, merge
 
@@ -125,3 +126,43 @@ def normalize(
         case _:
             msg = "Invalid mode."
             raise ValueError(msg)
+
+
+def refine(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
+    r"""Refine projectors by LU decomposition.
+
+    Given ill-conditioned projectors, this function improves the orthonormality :math:`Q^\dagger P \simeq E`.
+
+    Parameters
+    ----------
+    p
+        Left projector.
+    q
+        Right projector.
+
+    Returns
+    -------
+    p : `numpy.ndarray`
+        Refined ``p`` close to the original.
+    q : `numpy.ndarray`
+        Refined ``q`` close to the original.
+
+    Raises
+    ------
+    ValueError
+        If pivoting is required: this should not happen if :math:`Q^\dagger P` is close enough to identity.
+    """
+    _index.assert_pshapes(p.shape, q.shape)
+    spq = p.shape
+    p = merge.group(p, (range(p.ndim - 1), -1))
+    q = merge.group(q, (range(q.ndim - 1), -1))
+    x = q.T.conj() @ p
+    lu, piv = linalg.lu_factor(x)
+    if np.any(piv != range(piv.size)):
+        msg = "Pivoting required: maybe too ill-conditioned."
+        raise ValueError(msg)
+    *_, d = spq
+    up = linalg.solve_triangular(lu, np.eye(d))  # Use U as-is
+    l = np.tril(lu, k=-1) + np.eye(d)  # Restore L
+    uq = linalg.solve_triangular(l.T.conj(), np.eye(d))
+    return merge.ungroup(p @ up, (0, spq[:-1])), merge.ungroup(q @ uq, (0, spq[:-1]))
