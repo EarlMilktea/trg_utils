@@ -1,7 +1,4 @@
-"""Tensor decompositions.
-
-This module provides functions to perform tensor decompositions such as SVD and QR.
-"""
+"""Tensor decompositions."""
 
 from __future__ import annotations
 
@@ -30,6 +27,8 @@ def tsvd(
         Axis indices included in ``V``.
     hermitian
         Whether to use the Hermitian SVD.
+        This option is only valid only when ``arr`` is hermitian-symmetric
+        under the index swap between ``iu`` and ``iv``.
 
     Returns
     -------
@@ -45,7 +44,7 @@ def tsvd(
     ValueError
         If either ``iu`` or ``iv`` is empty.
         If any axis is missing or duplicated in ``iu`` and ``iv``.
-        If Hermitian SVD is requested but the grouped array is not square.
+        If ``hermitian = True`` but the grouped array is not likely to be Hermitian.
     """
     arr = np.asarray(arr)
     d = arr.ndim
@@ -135,7 +134,7 @@ def hosvd(arr: npt.ArrayLike, iu: Sequence[SupportsIndex]) -> tuple[npt.NDArray[
     Raises
     ------
     ValueError
-        If no axes are excluded from ``iu``. See :func:`tsvd` for more details.
+        If all the axes are included in ``iu``. See :func:`tsvd` for more details.
 
     Notes
     -----

@@ -21,21 +21,21 @@ def extend(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], 
     Parameters
     ----------
     p
-        Left projector.
+        Left dual basis.
     q
-        Right projector.
+        Right dual basis.
 
     Returns
     -------
     pex : `numpy.ndarray`
-        ``p`` extended to a full-rank isometry.
+        ``p`` extended to a full-rank dual basis.
     qex : `numpy.ndarray`
-        ``q`` extended to a full-rank isometry.
+        ``q`` extended to a full-rank dual basis.
 
     Notes
     -----
     Biorthonormality is not validated.
-    If both projectors are empty, returns identity matrices.
+    If both projectors are empty, returns identity.
     """
     sp: tuple[int, ...] = p.shape
     sq: tuple[int, ...] = q.shape
@@ -89,24 +89,24 @@ def _normalize_global(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDA
 def normalize(
     p: npt.NDArray[Any], q: npt.NDArray[Any], mode: Literal["local", "global"]
 ) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
-    """Adjust norms of projector pairs without affecting the biorthogonality.
+    """Adjust norms of dual bases without affecting the biorthogonality.
 
     Parameters
     ----------
     p
-        Left projector.
+        Left dual basis.
     q
-        Right projector.
+        Right dual basis.
     mode
         Normalization mode.
-        If ``"local"``, each pair of vectors will have the same norm. If ``"global"``, the entire projectors are used.
+        If ``"local"``, each pair of vectors will have the same norm. If ``"global"``, the entire bases will.
 
     Returns
     -------
     p : `numpy.ndarray`
-        Normalized left projector.
+        Normalized left dual basis.
     q : `numpy.ndarray`
-        Normalized right projector.
+        Normalized right dual basis.
 
     Raises
     ------
@@ -136,9 +136,9 @@ def refine(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], 
     Parameters
     ----------
     p
-        Left projector.
+        Left basis.
     q
-        Right projector.
+        Right basis.
 
     Returns
     -------

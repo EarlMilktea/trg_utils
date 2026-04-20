@@ -1,7 +1,4 @@
-"""Grouping and ungrouping of array axes.
-
-This module provides functions to merge or split array axes without changing the C-like memory layout.
-"""
+"""Grouping and ungrouping of array axes."""
 
 from __future__ import annotations
 
@@ -37,7 +34,7 @@ def group(arr: npt.ArrayLike, inds: Sequence[SupportsIndex | Sequence[SupportsIn
     inds
         Output-axis specification. Each element is either a single axis index (copied as-is),
         or a sequence of axis indices (merged into one axis).
-        The specification must cover all input axes exactly once.
+        The specification must cover all input axes without duplication.
 
     Returns
     -------

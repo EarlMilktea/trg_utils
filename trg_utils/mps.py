@@ -1,4 +1,4 @@
-"""Optimize MPS by locally-optimal global SVDs."""
+"""MPS optimization."""
 
 from __future__ import annotations
 
@@ -163,7 +163,7 @@ class _CanonicalMPS:
 def optimize(
     ts: Sequence[npt.NDArray[Any]], chi: int | None = None
 ) -> tuple[list[npt.NDArray[Any]], list[_ProjectorResult]]:
-    """Optimize MPS by SVD canonicalization and oblique projection.
+    """Optimize MPS by SVD-compatible oblique projection.
 
     Parameters
     ----------
@@ -183,10 +183,14 @@ def optimize(
     -------
     compressed
         The compressed MPS tensors.
-        Its internal bond dimensions are truncated to at most ``chi``.
-        Its external bond dimensions are unchanged.
+        Its closed bond dimensions are truncated to at most ``chi``.
+        Its open bond dimensions are unchanged.
     projectors
-        Projector information for each internal bond.
+        Projector information for each closed bond.
+
+    Notes
+    -----
+    The optimization is performed by SVD canonicalization.
     """
     ts_3 = _attach_dummy(ts)
     mps = _CanonicalMPS.from_ts(ts_3, chi)

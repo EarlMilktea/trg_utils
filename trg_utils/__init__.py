@@ -1,4 +1,4 @@
-"""Simple utilities for working with tensor renormalization groups.
+"""Simple utilities for tensor network renormalization groups.
 
 This package provides various utilities for tensor manipulations, which are slightly beyond basic NumPy operations.
 """
