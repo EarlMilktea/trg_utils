@@ -36,7 +36,7 @@ def test_attach_ng() -> None:
     with pytest.raises(ValueError, match=r".*3D.*"):
         mps._attach_dummy([np.zeros((2, 2)), np.zeros((2, 2)), np.zeros((2, 2))])
 
-    with pytest.raises(ValueError, match=r".*leg dimension.*"):
+    with pytest.raises(ValueError, match=r".*bond dimension.*"):
         mps._attach_dummy([np.zeros((2, 2)), np.zeros((2, 3))])
 
 
