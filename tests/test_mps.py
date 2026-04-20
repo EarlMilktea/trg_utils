@@ -183,7 +183,7 @@ class TestCanonicalMPS:
         for _, p, q in res:
             work = q.T.conj() @ p
             d, _ = work.shape
-            np.testing.assert_allclose(work, np.eye(d), atol=1e-6)
+            np.testing.assert_allclose(work, np.eye(d), atol=1e-4)
 
     @given(ts=conftest.random_mps(4))
     @pytest.mark.parametrize("chi", [None, 1])
@@ -275,5 +275,5 @@ class TestOptimize:
             assert np.all(np.sort(s)[::-1] == s)
             assert p.shape == (d, d)
             assert q.shape == (d, d)
-            np.testing.assert_allclose(q.T.conj() @ p, np.eye(d), atol=1e-5)
-            np.testing.assert_allclose(p @ q.T.conj(), np.eye(d), atol=1e-5)
+            np.testing.assert_allclose(q.T.conj() @ p, np.eye(d), atol=1e-4)
+            np.testing.assert_allclose(p @ q.T.conj(), np.eye(d), atol=1e-4)

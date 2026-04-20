@@ -151,6 +151,7 @@ class TestRefine:
         np.testing.assert_allclose(p_ref, p)
         np.testing.assert_allclose(q_ref, q)
 
+    @pytest.mark.filterwarnings("ignore:Generating overly large repr")
     @given(pq=_pq(3, 1e-3))
     def test_refine(self, pq: tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]) -> None:
         p, q = pq
