@@ -111,7 +111,7 @@ def normalize(
         Right dual basis.
     mode
         Normalization mode.
-        If ``"local"``, each pair of vectors will have the same norm. If ``"global"``, the entire bases will have the same norm.
+        If ``"local"``, each pair of vectors will have the same norm. If ``"global"``, the entire bases will be used.
 
     Returns
     -------
