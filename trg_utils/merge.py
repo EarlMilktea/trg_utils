@@ -1,7 +1,4 @@
-"""Grouping and ungrouping of array axes.
-
-This module provides functions to merge or split array axes without changing the C-like memory layout.
-"""
+"""Grouping and ungrouping of array axes."""
 
 from __future__ import annotations
 
@@ -37,24 +34,25 @@ def group(arr: npt.ArrayLike, inds: Sequence[SupportsIndex | Sequence[SupportsIn
     inds
         Output-axis specification. Each element is either a single axis index (copied as-is),
         or a sequence of axis indices (merged into one axis).
-        The specification must cover all input axes exactly once.
+        The specification must cover all input axes without duplication.
 
     Returns
     -------
     `numpy.ndarray`
         Array with axes permuted and optionally merged as specified by ``inds``.
 
-    Raises
-    ------
-    ValueError
-        If an axis index is out of range or duplicated.
-        If an index group is empty.
-        If the specification does not cover all input axes.
-
     Notes
     -----
     C-like memory layout is preserved on merging for each group.
-    """  # noqa: DOC502
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from trg_utils import merge
+    >>> arr = np.random.rand(2, 3, 4)
+    >>> reshaped = merge.group(arr, ((0, 2), 1))
+    >>> assert reshaped.shape == (8, 3)
+    """
     arr = np.asarray(arr)
     d = arr.ndim
     args = [_index.normalize(d, _index.materialize(ind)) for ind in inds]
@@ -99,15 +97,17 @@ def ungroup(arr: npt.ArrayLike, *instr: tuple[SupportsIndex, Sequence[SupportsIn
     `numpy.ndarray`
         Array with each target axis replaced by the corresponding ``split`` shape.
 
-    Raises
-    ------
-    ValueError
-        If a target axis is out of range or duplicated.
-        If a target shape is incompatible with ``arr``.
-
     Notes
     -----
     All the instructions are applied in parallel to the original array.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from trg_utils import merge
+    >>> arr = np.random.rand(8, 4)
+    >>> reshaped = merge.ungroup(arr, (0, (2, 4)), (1, (2, 2)))
+    >>> assert reshaped.shape == (2, 4, 2, 2)
     """
     arr = np.asarray(arr)
     d = arr.ndim

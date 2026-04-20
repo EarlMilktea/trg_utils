@@ -1,7 +1,4 @@
-"""Tensor decompositions.
-
-This module provides functions to perform tensor decompositions such as SVD and QR.
-"""
+"""Tensor decompositions."""
 
 from __future__ import annotations
 
@@ -23,13 +20,15 @@ def tsvd(
     Parameters
     ----------
     arr
-        Input array to decompose.
+        Input tensor to decompose.
     iu
         Axis indices included in ``U``.
     iv
         Axis indices included in ``V``.
     hermitian
         Whether to use the Hermitian SVD.
+        This option is only valid when ``arr`` is Hermitian-symmetric
+        under the index swap between ``iu`` and ``iv``.
 
     Returns
     -------
@@ -40,12 +39,13 @@ def tsvd(
     V : `numpy.ndarray`
         Axes from ``iv`` in the same order plus a new axis appended at the end.
 
-    Raises
-    ------
-    ValueError
-        If either ``iu`` or ``iv`` is empty.
-        If any axis is missing or duplicated in ``iu`` and ``iv``.
-        If Hermitian SVD is requested but the grouped array is not square.
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from trg_utils import decomp
+    >>> arr = np.random.rand(3, 4, 5)
+    >>> u, s, v = decomp.tsvd(arr, (0, 2), (1,))
+    >>> assert np.allclose(arr, np.einsum("ika,a,ja->ijk", u, s, v))
     """
     arr = np.asarray(arr)
     d = arr.ndim
@@ -79,7 +79,7 @@ def tqr(
     Parameters
     ----------
     arr
-        Input array to decompose.
+        Input tensor to decompose.
     iq
         Axis indices included in ``Q``.
     ir
@@ -92,12 +92,14 @@ def tqr(
     R : `numpy.ndarray`
         Axes from ``ir`` in the same order plus a new axis appended at the end.
 
-    Raises
-    ------
-    ValueError
-        If either ``iq`` or ``ir`` is empty.
-        If any axis is missing or duplicated in ``iq`` and ``ir``.
-    """  # noqa: DOC502
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from trg_utils import decomp
+    >>> arr = np.random.rand(3, 4, 5)
+    >>> q, r = decomp.tqr(arr, (0, 2), (1,))
+    >>> assert np.allclose(arr, np.einsum("ika,ja->ijk", q, r))
+    """
     arr = np.asarray(arr)
     d = arr.ndim
     iq = _index.normalize(d, _index.materialize(iq))
@@ -118,10 +120,12 @@ def tqr(
 def hosvd(arr: npt.ArrayLike, iu: Sequence[SupportsIndex]) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
     """Perform higher-order SVD.
 
+    This function is similar to :func:`tsvd`, but it computes only the :math:`U` and :math:`S` factors.
+
     Parameters
     ----------
     arr
-        Input array to decompose.
+        Input tensor to decompose.
     iu
         Axis indices to be included in ``U``.
 
@@ -135,11 +139,16 @@ def hosvd(arr: npt.ArrayLike, iu: Sequence[SupportsIndex]) -> tuple[npt.NDArray[
     Raises
     ------
     ValueError
-        If no axes are excluded from ``iu``. See :func:`tsvd` for more details.
+        If all the axes are included in ``iu``.
 
-    Notes
-    -----
-    This function is similar to :func:`tsvd`, but it computes only the ``U`` matrix using HOSVD.
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from trg_utils import decomp
+    >>> arr = np.random.rand(3, 4, 5)
+    >>> s, u = decomp.hosvd(arr, (0, 2))
+    >>> _, s_, _ = decomp.tsvd(arr, (0, 2), (1,))  # MEMO: U can be slightly different
+    >>> assert np.allclose(s, s_)
     """
     arr = np.asarray(arr)
     d = arr.ndim

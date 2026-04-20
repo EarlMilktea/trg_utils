@@ -1,4 +1,4 @@
-"""Optimize MPS by locally-optimal global SVDs."""
+"""MPS optimization."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ def _attach_dummy(ts: Sequence[npt.NDArray[_T]]) -> list[npt.NDArray[_T]]:
     ]
     for left, right in itertools.pairwise(ret):
         if left.shape[2] != right.shape[1]:
-            msg = "Inconsistent closed leg dimensions."
+            msg = "Inconsistent closed bond dimensions."
             raise ValueError(msg)
     return ret
 
@@ -59,8 +59,6 @@ _CHI_INF = 10**17
 
 @dataclasses.dataclass
 class _CanonicalMPS:
-    """Left/right canonical MPS with dummy legs."""
-
     ts: list[npt.NDArray[Any]]
     chi: int
     ss: list[npt.NDArray[Any]] = dataclasses.field(default_factory=list)
@@ -163,7 +161,7 @@ class _CanonicalMPS:
 def optimize(
     ts: Sequence[npt.NDArray[Any]], chi: int | None = None
 ) -> tuple[list[npt.NDArray[Any]], list[_ProjectorResult]]:
-    """Optimize MPS by SVD canonicalization and oblique projection.
+    r"""Optimize MPS by SVD-compatible oblique projection.
 
     Parameters
     ----------
@@ -172,9 +170,7 @@ def optimize(
             - Tensors are given as a sequence of `numpy.ndarray` objects.
             - At least two tensors are required.
             - ``ts[i].ndim`` must be ``2`` for ``i == 0`` and ``i == len(ts) - 1``, and must be ``3`` otherwise.
-            - Tensors are indexed as ``ts[i][open, minus, plus]`` where ``open`` is the open leg, \
-            ``minus`` is the closed leg tied to ``ts[i - 1]``, and ``plus`` is tied to ``ts[i + 1]``. \
-            ``minus`` or ``plus`` are ignored in the edge tensors.
+            - Tensors are indexed as ``ts[i][open, minus, plus]`` where ``open`` is the open leg, ``minus`` is the closed leg tied to ``ts[i - 1]``, and ``plus`` is tied to ``ts[i + 1]``. ``minus`` or ``plus`` are ignored in the edge tensors.
             - All the closed legs must have coherent dimensions.
     chi
         The maximum bond dimension allowed. If `None`, treated as infinity.
@@ -183,11 +179,17 @@ def optimize(
     -------
     compressed
         The compressed MPS tensors.
-        Its internal bond dimensions are truncated to at most ``chi``.
-        Its external bond dimensions are unchanged.
+        Its closed bond dimensions are truncated to at most ``chi``.
+        Its open-leg dimensions are unchanged.
     projectors
-        Projector information for each internal bond.
-    """
+        Projector information for each closed leg: singular values ``s``, left/right dual basis ``p`` and ``q``.
+        ``compressed`` can be reconstructed by inserting ``p[:, :r] @ q[:, :r].T.conj()`` where the rank :math:`r`
+        is the number of nonzero elements in ``s``.
+
+    Notes
+    -----
+    The optimization is performed by SVD canonicalization.
+    """  # noqa: E501
     ts_3 = _attach_dummy(ts)
     mps = _CanonicalMPS.from_ts(ts_3, chi)
     chi = mps.chi

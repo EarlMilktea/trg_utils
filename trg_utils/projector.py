@@ -13,29 +13,39 @@ from trg_utils import _index, merge
 
 
 def extend(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
-    r"""Extend projectors.
+    r"""Extend projector bases.
 
-    This function assumes that the input projectors :math:`P` and :math:`Q` satisfy :math:`Q^\dagger P = E`.
-    Then it computes :math:`P_{ex}` and :math:`Q_{ex}` satisfying :math:`Q_{ex}^\dagger P_{ex} = E` by basis extension.
+    This function assumes that the input bases :math:`P` and :math:`Q` satisfy :math:`Q^\dagger P = E`.
+    Then it computes :math:`P_{\mathrm{ex}}` and :math:`Q_{\mathrm{ex}}`
+    satisfying :math:`Q_{\mathrm{ex}}^\dagger P_{\mathrm{ex}} = E` by basis extension.
 
     Parameters
     ----------
     p
-        Left projector.
+        Left dual basis.
     q
-        Right projector.
+        Right dual basis.
 
     Returns
     -------
     pex : `numpy.ndarray`
-        ``p`` extended to a full-rank isometry.
+        ``p`` extended to a full-rank dual basis.
     qex : `numpy.ndarray`
-        ``q`` extended to a full-rank isometry.
+        ``q`` extended to a full-rank dual basis.
 
     Notes
     -----
     Biorthonormality is not validated.
-    If both projectors are empty, returns identity matrices.
+    If both inputs are empty, returns identity.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from trg_utils import projector
+    >>> p = np.array([[1, 0], [0, 1], [0, 0]])
+    >>> q = np.array([[1, 0], [0, 1], [1, 0]])
+    >>> pex, qex = projector.extend(p, q)
+    >>> assert np.allclose(qex.T.conj() @ pex, np.eye(3))
     """
     sp: tuple[int, ...] = p.shape
     sq: tuple[int, ...] = q.shape
@@ -89,33 +99,42 @@ def _normalize_global(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDA
 def normalize(
     p: npt.NDArray[Any], q: npt.NDArray[Any], mode: Literal["local", "global"]
 ) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
-    """Adjust norms of projector pairs without affecting the biorthogonality.
+    r"""Adjust norms of dual bases without affecting the biorthonormality.
+
+    This function adjusts the norms of :math:`P` and :math:`Q` while :math:`Q^\dagger P = E` is maintained.
 
     Parameters
     ----------
     p
-        Left projector.
+        Left dual basis.
     q
-        Right projector.
+        Right dual basis.
     mode
         Normalization mode.
-        If ``"local"``, each pair of vectors will have the same norm. If ``"global"``, the entire projectors are used.
+        If ``"local"``, each pair of vectors will have the same norm. If ``"global"``, the entire bases will be used.
 
     Returns
     -------
     p : `numpy.ndarray`
-        Normalized left projector.
+        Normalized left dual basis.
     q : `numpy.ndarray`
-        Normalized right projector.
-
-    Raises
-    ------
-    ValueError
-        If ``mode`` is invalid.
+        Normalized right dual basis.
 
     Notes
     -----
     Biorthonormality is not validated.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from trg_utils import projector
+    >>> p0 = np.array([[1, 0], [0, 1], [0, 0]])
+    >>> q0 = np.array([[1, 0], [0, 1], [1, 0]])
+    >>> p, q = projector.normalize(p0, q0, mode="local")
+    >>> assert np.allclose(np.linalg.norm(p[..., 0]), np.linalg.norm(q[..., 0]))
+    >>> assert np.allclose(np.linalg.norm(p[..., 1]), np.linalg.norm(q[..., 1]))
+    >>> p, q = projector.normalize(p0, q0, mode="global")
+    >>> assert np.allclose(np.linalg.norm(p), np.linalg.norm(q))
     """
     _index.assert_pshapes(p.shape, q.shape)
     match mode:
@@ -129,16 +148,16 @@ def normalize(
 
 
 def refine(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
-    r"""Refine projectors by LU decomposition.
+    r"""Refine dual bases by LU decomposition.
 
-    Given ill-conditioned projectors, this function improves the orthonormality :math:`Q^\dagger P \simeq E`.
+    Given ill-conditioned dual bases, this function improves the orthonormality :math:`Q^\dagger P \simeq E`.
 
     Parameters
     ----------
     p
-        Left projector.
+        Left basis.
     q
-        Right projector.
+        Right basis.
 
     Returns
     -------
@@ -150,7 +169,16 @@ def refine(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], 
     Raises
     ------
     ValueError
-        If pivoting is required: this should not happen if :math:`Q^\dagger P` is close enough to identity.
+        If pivoting is required: this should not happen as long as :math:`Q^\dagger P` is close enough to identity.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from trg_utils import projector
+    >>> p = np.eye(3) + 1e-2 * np.random.rand(3, 3)
+    >>> q = np.eye(3) + 1e-2 * np.random.rand(3, 3)
+    >>> p, q = projector.refine(p, q)
+    >>> assert np.allclose(q.T.conj() @ p, np.eye(3))
     """
     _index.assert_pshapes(p.shape, q.shape)
     spq = p.shape
