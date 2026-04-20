@@ -31,4 +31,4 @@ jobs:
           python -m pip install -e ".[dev]"
 
       - run: |
-          pytest
+          pytest --doctest-modules
