@@ -37,6 +37,15 @@ def extend(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], 
     -----
     Biorthonormality is not validated.
     If both projectors are empty, returns identity.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from trg_utils import projector
+    >>> p = np.array([[1, 0], [0, 1], [0, 0]])
+    >>> q = np.array([[1, 0], [0, 1], [1, 0]])
+    >>> pex, qex = projector.extend(p, q)
+    >>> assert np.allclose(qex.T.conj() @ pex, np.eye(3))
     """
     sp: tuple[int, ...] = p.shape
     sq: tuple[int, ...] = q.shape
@@ -114,6 +123,18 @@ def normalize(
     Notes
     -----
     Biorthonormality is not validated.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from trg_utils import projector
+    >>> p0 = np.array([[1, 0], [0, 1], [0, 0]])
+    >>> q0 = np.array([[1, 0], [0, 1], [1, 0]])
+    >>> p, q = projector.normalize(p0, q0, mode="local")
+    >>> assert np.allclose(np.linalg.norm(p[..., 0]), np.linalg.norm(q[..., 0]))
+    >>> assert np.allclose(np.linalg.norm(p[..., 1]), np.linalg.norm(q[..., 1]))
+    >>> p, q = projector.normalize(p0, q0, mode="global")
+    >>> assert np.allclose(np.linalg.norm(p), np.linalg.norm(q))
     """
     _index.assert_pshapes(p.shape, q.shape)
     match mode:
@@ -149,6 +170,15 @@ def refine(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], 
     ------
     ValueError
         If pivoting is required: this should not happen as long as :math:`Q^\dagger P` is close enough to identity.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from trg_utils import projector
+    >>> p = np.eye(3) + 1e-2 * np.random.rand(3, 3)
+    >>> q = np.eye(3) + 1e-2 * np.random.rand(3, 3)
+    >>> p, q = projector.refine(p, q)
+    >>> assert np.allclose(q.T.conj() @ p, np.eye(3))
     """
     _index.assert_pshapes(p.shape, q.shape)
     spq = p.shape

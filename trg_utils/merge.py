@@ -44,6 +44,14 @@ def group(arr: npt.ArrayLike, inds: Sequence[SupportsIndex | Sequence[SupportsIn
     Notes
     -----
     C-like memory layout is preserved on merging for each group.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from trg_utils import merge
+    >>> arr = np.random.rand(2, 3, 4)
+    >>> reshaped = merge.group(arr, ((0, 2), 1))
+    >>> assert reshaped.shape == (8, 3)
     """
     arr = np.asarray(arr)
     d = arr.ndim
@@ -92,6 +100,14 @@ def ungroup(arr: npt.ArrayLike, *instr: tuple[SupportsIndex, Sequence[SupportsIn
     Notes
     -----
     All the instructions are applied in parallel to the original array.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from trg_utils import merge
+    >>> arr = np.random.rand(8, 4)
+    >>> reshaped = merge.ungroup(arr, (0, (2, 4)), (1, (2, 2)))
+    >>> assert reshaped.shape == (2, 4, 2, 2)
     """
     arr = np.asarray(arr)
     d = arr.ndim

@@ -38,6 +38,14 @@ def tsvd(
         1D array of singular values.
     V : `numpy.ndarray`
         Axes from ``iv`` in the same order plus a new axis appended at the end.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from trg_utils import decomp
+    >>> arr = np.random.rand(3, 4, 5)
+    >>> u, s, v = decomp.tsvd(arr, (0, 2), (1,))
+    >>> assert np.allclose(arr, np.einsum("ika,a,ja->ijk", u, s, v))
     """
     arr = np.asarray(arr)
     d = arr.ndim
@@ -83,6 +91,14 @@ def tqr(
         Axes from ``iq`` in the same order plus a new axis appended at the end.
     R : `numpy.ndarray`
         Axes from ``ir`` in the same order plus a new axis appended at the end.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from trg_utils import decomp
+    >>> arr = np.random.rand(3, 4, 5)
+    >>> q, r = decomp.tqr(arr, (0, 2), (1,))
+    >>> assert np.allclose(arr, np.einsum("ika,ja->ijk", q, r))
     """
     arr = np.asarray(arr)
     d = arr.ndim
@@ -124,6 +140,15 @@ def hosvd(arr: npt.ArrayLike, iu: Sequence[SupportsIndex]) -> tuple[npt.NDArray[
     ------
     ValueError
         If all the axes are included in ``iu``.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from trg_utils import decomp
+    >>> arr = np.random.rand(3, 4, 5)
+    >>> s, u = decomp.hosvd(arr, (0, 2))
+    >>> _, s_, _ = decomp.tsvd(arr, (0, 2), (1,))  # MEMO: U can be slightly different
+    >>> assert np.allclose(s, s_)
     """
     arr = np.asarray(arr)
     d = arr.ndim
