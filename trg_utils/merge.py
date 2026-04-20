@@ -41,17 +41,10 @@ def group(arr: npt.ArrayLike, inds: Sequence[SupportsIndex | Sequence[SupportsIn
     `numpy.ndarray`
         Array with axes permuted and optionally merged as specified by ``inds``.
 
-    Raises
-    ------
-    ValueError
-        If an axis index is out of range or duplicated.
-        If an index group is empty.
-        If the specification does not cover all input axes.
-
     Notes
     -----
     C-like memory layout is preserved on merging for each group.
-    """  # noqa: DOC502
+    """
     arr = np.asarray(arr)
     d = arr.ndim
     args = [_index.normalize(d, _index.materialize(ind)) for ind in inds]
@@ -95,12 +88,6 @@ def ungroup(arr: npt.ArrayLike, *instr: tuple[SupportsIndex, Sequence[SupportsIn
     -------
     `numpy.ndarray`
         Array with each target axis replaced by the corresponding ``split`` shape.
-
-    Raises
-    ------
-    ValueError
-        If a target axis is out of range or duplicated.
-        If a target shape is incompatible with ``arr``.
 
     Notes
     -----

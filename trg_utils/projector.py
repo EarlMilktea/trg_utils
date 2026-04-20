@@ -108,11 +108,6 @@ def normalize(
     q : `numpy.ndarray`
         Normalized right dual basis.
 
-    Raises
-    ------
-    ValueError
-        If ``mode`` is invalid.
-
     Notes
     -----
     Biorthonormality is not validated.
@@ -150,7 +145,7 @@ def refine(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], 
     Raises
     ------
     ValueError
-        If pivoting is required: this should not happen if :math:`Q^\dagger P` is close enough to identity.
+        If pivoting is required: this should not happen as long as :math:`Q^\dagger P` is close enough to identity.
     """
     _index.assert_pshapes(p.shape, q.shape)
     spq = p.shape

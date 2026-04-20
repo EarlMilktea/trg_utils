@@ -73,6 +73,7 @@ ignore = [
   "W191",
 
   "CPY",     # flake8-copyright
+  "DOC501",  # docstring-missing-exception
   "E74",     # ambiguous-XXX-name
   "ERA",     # eradicate
   "PLR2004", # magic-value-comparison
