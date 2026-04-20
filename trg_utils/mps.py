@@ -161,7 +161,7 @@ class _CanonicalMPS:
 def optimize(
     ts: Sequence[npt.NDArray[Any]], chi: int | None = None
 ) -> tuple[list[npt.NDArray[Any]], list[_ProjectorResult]]:
-    """Optimize MPS by SVD-compatible oblique projection.
+    r"""Optimize MPS by SVD-compatible oblique projection.
 
     Parameters
     ----------
@@ -184,7 +184,9 @@ def optimize(
         Its closed bond dimensions are truncated to at most ``chi``.
         Its open bond dimensions are unchanged.
     projectors
-        Projector information for each closed leg.
+        Projector information for each closed leg: singular values ``s``, left/right dual basis ``p`` and ``q``.
+        ``compressed`` can be reconstructed by inserting ``p[:, :r] @ q[:, :r].T.conj()`` where the rank :math:`r`
+        is the number of nonzero elements in ``s``.
 
     Notes
     -----
