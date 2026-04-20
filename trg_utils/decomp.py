@@ -27,7 +27,7 @@ def tsvd(
         Axis indices included in ``V``.
     hermitian
         Whether to use the Hermitian SVD.
-        This option is only valid only when ``arr`` is hermitian-symmetric
+        This option is only valid when ``arr`` is Hermitian-symmetric
         under the index swap between ``iu`` and ``iv``.
 
     Returns

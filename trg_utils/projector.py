@@ -36,7 +36,7 @@ def extend(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], 
     Notes
     -----
     Biorthonormality is not validated.
-    If both projectors are empty, returns identity.
+    If both inputs are empty, returns identity.
 
     Examples
     --------
@@ -111,7 +111,7 @@ def normalize(
         Right dual basis.
     mode
         Normalization mode.
-        If ``"local"``, each pair of vectors will have the same norm. If ``"global"``, the entire bases will.
+        If ``"local"``, each pair of vectors will have the same norm. If ``"global"``, the entire bases will have the same norm.
 
     Returns
     -------
@@ -150,7 +150,7 @@ def normalize(
 def refine(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
     r"""Refine dual bases by LU decomposition.
 
-    Given ill-conditioned projectors, this function improves the orthonormality :math:`Q^\dagger P \simeq E`.
+    Given ill-conditioned dual bases, this function improves the orthonormality :math:`Q^\dagger P \simeq E`.
 
     Parameters
     ----------

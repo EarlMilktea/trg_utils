@@ -180,7 +180,7 @@ def optimize(
     compressed
         The compressed MPS tensors.
         Its closed bond dimensions are truncated to at most ``chi``.
-        Its open bond dimensions are unchanged.
+        Its open-leg dimensions are unchanged.
     projectors
         Projector information for each closed leg: singular values ``s``, left/right dual basis ``p`` and ``q``.
         ``compressed`` can be reconstructed by inserting ``p[:, :r] @ q[:, :r].T.conj()`` where the rank :math:`r`
