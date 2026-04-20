@@ -34,7 +34,7 @@ def _attach_dummy(ts: Sequence[npt.NDArray[_T]]) -> list[npt.NDArray[_T]]:
     ]
     for left, right in itertools.pairwise(ret):
         if left.shape[2] != right.shape[1]:
-            msg = "Inconsistent closed leg dimensions."
+            msg = "Inconsistent closed bond dimensions."
             raise ValueError(msg)
     return ret
 
@@ -59,8 +59,6 @@ _CHI_INF = 10**17
 
 @dataclasses.dataclass
 class _CanonicalMPS:
-    """Left/right canonical MPS with dummy legs."""
-
     ts: list[npt.NDArray[Any]]
     chi: int
     ss: list[npt.NDArray[Any]] = dataclasses.field(default_factory=list)
@@ -186,7 +184,7 @@ def optimize(
         Its closed bond dimensions are truncated to at most ``chi``.
         Its open bond dimensions are unchanged.
     projectors
-        Projector information for each closed bond.
+        Projector information for each closed leg.
 
     Notes
     -----

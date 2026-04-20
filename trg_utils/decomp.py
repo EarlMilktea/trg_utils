@@ -20,7 +20,7 @@ def tsvd(
     Parameters
     ----------
     arr
-        Input array to decompose.
+        Input tensor to decompose.
     iu
         Axis indices included in ``U``.
     iv
@@ -71,7 +71,7 @@ def tqr(
     Parameters
     ----------
     arr
-        Input array to decompose.
+        Input tensor to decompose.
     iq
         Axis indices included in ``Q``.
     ir
@@ -104,10 +104,12 @@ def tqr(
 def hosvd(arr: npt.ArrayLike, iu: Sequence[SupportsIndex]) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
     """Perform higher-order SVD.
 
+    This function is similar to :func:`tsvd`, but it computes only the :math:`U` and :math:`S` factors.
+
     Parameters
     ----------
     arr
-        Input array to decompose.
+        Input tensor to decompose.
     iu
         Axis indices to be included in ``U``.
 
@@ -122,10 +124,6 @@ def hosvd(arr: npt.ArrayLike, iu: Sequence[SupportsIndex]) -> tuple[npt.NDArray[
     ------
     ValueError
         If all the axes are included in ``iu``.
-
-    Notes
-    -----
-    This function is similar to :func:`tsvd`, but it computes only the ``U`` matrix using HOSVD.
     """
     arr = np.asarray(arr)
     d = arr.ndim

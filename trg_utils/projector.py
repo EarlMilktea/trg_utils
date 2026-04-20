@@ -13,10 +13,11 @@ from trg_utils import _index, merge
 
 
 def extend(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
-    r"""Extend projectors.
+    r"""Extend projector bases.
 
     This function assumes that the input projectors :math:`P` and :math:`Q` satisfy :math:`Q^\dagger P = E`.
-    Then it computes :math:`P_{ex}` and :math:`Q_{ex}` satisfying :math:`Q_{ex}^\dagger P_{ex} = E` by basis extension.
+    Then it computes :math:`P_{\mathrm{ex}}` and :math:`Q_{\mathrm{ex}}`
+    satisfying :math:`Q_{\mathrm{ex}}^\dagger P_{\mathrm{ex}} = E` by basis extension.
 
     Parameters
     ----------
@@ -89,7 +90,7 @@ def _normalize_global(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDA
 def normalize(
     p: npt.NDArray[Any], q: npt.NDArray[Any], mode: Literal["local", "global"]
 ) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
-    """Adjust norms of dual bases without affecting the biorthogonality.
+    """Adjust norms of dual bases without affecting the biorthonormality.
 
     Parameters
     ----------
@@ -124,7 +125,7 @@ def normalize(
 
 
 def refine(p: npt.NDArray[Any], q: npt.NDArray[Any]) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
-    r"""Refine projectors by LU decomposition.
+    r"""Refine projector bases by LU decomposition.
 
     Given ill-conditioned projectors, this function improves the orthonormality :math:`Q^\dagger P \simeq E`.
 
