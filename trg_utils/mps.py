@@ -88,7 +88,7 @@ class _CanonicalMPS:
         for i in range(self.n - 1):
             u, s, v = decomp.tsvd(work, (0, 1), (2,))
             self.us.append(u)
-            work = np.einsum("b,ib,aic->abc", s, v, self.ts[i + 1])
+            work = np.einsum("b,ib,aic->abc", s, v, self.ts[i + 1], optimize=True)
         return work
 
     def _backward(self, work: npt.NDArray[Any]) -> None:
@@ -97,7 +97,7 @@ class _CanonicalMPS:
             self.gauge.append(gauge)
             self.ss.append(s)  # Store the raw singular values
             self.vs.append(v.transpose(0, 2, 1))  # Adjust leg order
-            work = np.einsum("abi,ij,j->abj", self.us[i], gauge, self.zerofill(s))
+            work = np.einsum("abi,ij,j->abj", self.us[i], gauge, self.zerofill(s), optimize=True)
         self.gauge.reverse()
         self.ss.reverse()
         self.vs.reverse()
@@ -133,7 +133,7 @@ class _CanonicalMPS:
     def _prefix(self) -> list[npt.NDArray[Any]]:
         prefix: list[npt.NDArray[Any]] = [np.eye(1)]
         for t, u in zip(self.ts, self.us, strict=False):
-            prefix.append(np.einsum("abi,bc,acj->ij", t.conj(), prefix[-1], u))
+            prefix.append(np.einsum("abi,bc,acj->ij", t.conj(), prefix[-1], u, optimize=True))
         for i, g in enumerate(self.gauge, start=1):
             prefix[i] = prefix[i] @ g  # noqa: PLR6104 (shape change required)
         return prefix
@@ -141,7 +141,7 @@ class _CanonicalMPS:
     def _suffix(self) -> list[npt.NDArray[Any]]:
         suffix: list[npt.NDArray[Any]] = [np.eye(1)]
         for t, v in zip(reversed(self.ts), reversed(self.vs), strict=False):
-            suffix.append(np.einsum("aib,bc,ajc->ij", t.conj(), suffix[-1], v))
+            suffix.append(np.einsum("aib,bc,ajc->ij", t.conj(), suffix[-1], v, optimize=True))
         return suffix
 
     def projectors(self) -> list[_ProjectorResult]:
@@ -202,6 +202,7 @@ def optimize(
     ps = [*(val.p for val in spq), dummy]
     qs = [dummy, *(val.q for val in spq)]
     compressed = [
-        np.einsum("iab,aj,bk->ijk", t, q.conj(), p)[:, :chi, :chi] for (t, p, q) in zip(ts_3, ps, qs, strict=True)
+        np.einsum("iab,aj,bk->ijk", t, q.conj(), p, optimize=True)[:, :chi, :chi]
+        for (t, p, q) in zip(ts_3, ps, qs, strict=True)
     ]
     return _detach_dummy(compressed), projectors
