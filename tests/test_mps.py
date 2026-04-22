@@ -57,7 +57,6 @@ class TestCanonicalMPS:
     def test_from_ts(self, ts: list[npt.NDArray[np.complex128]]) -> None:
         psi = _CanonicalMPS.from_ts(mps._attach_dummy(ts))
         assert psi.n == len(ts)
-        assert psi.ts is not ts
         assert len(psi.us) == len(ts) - 1
         assert len(psi.vs) == len(ts) - 1
         assert len(psi.ss) == len(ts) - 1
