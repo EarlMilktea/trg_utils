@@ -12,7 +12,7 @@ from hypothesis import strategies as st
 
 from tests import conftest
 from trg_utils import mps
-from trg_utils.mps import _CanonicalMPS
+from trg_utils.mps import ProjectorResult, _CanonicalMPS
 
 
 @given(ts=conftest.random_mps(4))
@@ -244,30 +244,20 @@ class TestCanonicalMPS:
         )
 
 
-class TestOptimize:
+def test_rank() -> None:
+    res = ProjectorResult(np.asarray([1, 0]), np.eye(2), np.eye(2))
+    assert res.rank == 1
+
+
+class TestPSVD:
     def test_chi_ng(self) -> None:
         with pytest.raises(ValueError, match=r"positive"):
-            mps.optimize([np.zeros((2, 2)), np.zeros((2, 2))], chi=0)
-
-    @given(ts=conftest.random_mps(4))
-    def test_compressed_exact(self, ts: list[npt.NDArray[np.complex128]]) -> None:
-        comp, _ = mps.optimize(ts)
-        orig = np.einsum("ia,jab,kbc,lc->ijkl", *ts)
-        res = np.einsum("ia,jab,kbc,lc->ijkl", *comp)
-        np.testing.assert_allclose(res, orig, atol=1e-10)
-
-    @given(ts=conftest.random_mps(4))
-    @pytest.mark.parametrize("chi", [1, 5, 10, 50])
-    def test_compressed_trunc(self, ts: list[npt.NDArray[np.complex128]], chi: int) -> None:
-        comp, _ = mps.optimize(ts, chi)
-        for t, tc in zip(ts, comp, strict=True):
-            assert t.shape[0] == tc.shape[0]
-            assert all(d <= chi for d in tc.shape[1:])
+            mps.projective_svd([np.zeros((2, 2)), np.zeros((2, 2))], chi=0)
 
     @given(ts=conftest.random_mps(4))
     @pytest.mark.parametrize("chi", [None, 1])
     def test_proj(self, ts: list[npt.NDArray[np.complex128]], chi: int | None) -> None:
-        _, proj = mps.optimize(ts, chi)
+        proj = mps.projective_svd(ts, chi)
         for s, p, q in proj:
             d = s.size
             assert s.shape == (d,)
