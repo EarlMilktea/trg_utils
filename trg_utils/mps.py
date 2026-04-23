@@ -226,8 +226,7 @@ def projective_svd(ts: Sequence[npt.NDArray[Any]], chi: int | None = None) -> li
 
     Notes
     -----
-    When ``projectors[i..]`` is applied to the MPS, the result is SVD-canonicalized with the canonical center at the bond between ``ts[i]`` and ``ts[i + 1]``.
-    ``projectors[(i + 1)..]`` can be truncated up to bond dimension ``chi`` without changing the final contraction result.
+    When ``projectors[i..]`` is applied to the MPS and truncated up to bond dimension ``chi``, the result is SVD-canonicalized with the canonical center at the bond between ``ts[i]`` and ``ts[i + 1]``.
     """  # noqa: E501
     ts_3 = _preprocess(_attach_dummy(ts))
     mps = _CanonicalMPS.from_ts(ts_3, chi)
