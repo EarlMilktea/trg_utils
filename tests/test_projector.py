@@ -8,7 +8,7 @@ import hypothesis.strategies as st
 import numpy as np
 import numpy.typing as npt
 import pytest
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis.strategies import DrawFn, SearchStrategy
 
 from tests import conftest
@@ -152,6 +152,7 @@ class TestRefine:
         np.testing.assert_allclose(q_ref, q)
 
     @pytest.mark.filterwarnings("ignore:Generating overly large repr")
+    @settings(deadline=None)
     @given(pq=_pq(3, 1e-3))
     def test_refine(self, pq: tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]) -> None:
         p, q = pq

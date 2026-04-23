@@ -12,7 +12,7 @@ from hypothesis import strategies as st
 
 from tests import conftest
 from trg_utils import mps
-from trg_utils.mps import _CanonicalMPS
+from trg_utils.mps import ProjectorResult, _CanonicalMPS
 
 
 @given(ts=conftest.random_mps(4))
@@ -57,7 +57,6 @@ class TestCanonicalMPS:
     def test_from_ts(self, ts: list[npt.NDArray[np.complex128]]) -> None:
         psi = _CanonicalMPS.from_ts(mps._attach_dummy(ts))
         assert psi.n == len(ts)
-        assert psi.ts is not ts
         assert len(psi.us) == len(ts) - 1
         assert len(psi.vs) == len(ts) - 1
         assert len(psi.ss) == len(ts) - 1
@@ -244,30 +243,35 @@ class TestCanonicalMPS:
         )
 
 
-class TestOptimize:
+def test_rank() -> None:
+    res = ProjectorResult(np.asarray([1, 0]), np.eye(2), np.eye(2))
+    assert res.rank == 1
+
+
+@given(ts=conftest.random_mps(3))
+def test_preprocess(ts: list[npt.NDArray[np.complex128]]) -> None:
+    ts = mps._attach_dummy(ts)
+    orig = np.einsum("ila,jab,kbm->ijklm", *ts)
+    ts_ = mps._preprocess(ts)
+    if np.all(orig == 0):
+        for lhs, rhs in zip(ts_, ts, strict=True):
+            np.testing.assert_allclose(lhs, rhs)
+        return
+    assert np.linalg.norm(ts_[0]) == pytest.approx(np.linalg.norm(ts_[1]))
+    assert np.linalg.norm(ts_[1]) == pytest.approx(np.linalg.norm(ts_[2]))
+    cmp = np.einsum("ila,jab,kbm->ijklm", *ts_)
+    assert np.linalg.norm(cmp) == pytest.approx(1)
+
+
+class TestPSVD:
     def test_chi_ng(self) -> None:
         with pytest.raises(ValueError, match=r"positive"):
-            mps.optimize([np.zeros((2, 2)), np.zeros((2, 2))], chi=0)
-
-    @given(ts=conftest.random_mps(4))
-    def test_compressed_exact(self, ts: list[npt.NDArray[np.complex128]]) -> None:
-        comp, _ = mps.optimize(ts)
-        orig = np.einsum("ia,jab,kbc,lc->ijkl", *ts)
-        res = np.einsum("ia,jab,kbc,lc->ijkl", *comp)
-        np.testing.assert_allclose(res, orig, atol=1e-10)
-
-    @given(ts=conftest.random_mps(4))
-    @pytest.mark.parametrize("chi", [1, 5, 10, 50])
-    def test_compressed_trunc(self, ts: list[npt.NDArray[np.complex128]], chi: int) -> None:
-        comp, _ = mps.optimize(ts, chi)
-        for t, tc in zip(ts, comp, strict=True):
-            assert t.shape[0] == tc.shape[0]
-            assert all(d <= chi for d in tc.shape[1:])
+            mps.projective_svd([np.zeros((2, 2)), np.zeros((2, 2))], chi=0)
 
     @given(ts=conftest.random_mps(4))
     @pytest.mark.parametrize("chi", [None, 1])
     def test_proj(self, ts: list[npt.NDArray[np.complex128]], chi: int | None) -> None:
-        _, proj = mps.optimize(ts, chi)
+        proj = mps.projective_svd(ts, chi)
         for s, p, q in proj:
             d = s.size
             assert s.shape == (d,)

@@ -5,11 +5,13 @@ from __future__ import annotations
 import copy
 import dataclasses
 import itertools
+import math
 from collections.abc import Iterable, Sequence
 from typing import Any, NamedTuple, TypeVar
 
 import numpy as np
 import numpy.typing as npt
+from scipy import stats
 
 from trg_utils import decomp, projector
 
@@ -48,10 +50,29 @@ def _detach_dummy(ts: Iterable[npt.NDArray[_T]]) -> list[npt.NDArray[_T]]:
     ]
 
 
-class _ProjectorResult(NamedTuple):
+class ProjectorResult(NamedTuple):
+    """Projector dual basis and associated weights.
+
+    Attributes
+    ----------
+    s
+        Relative contribution of each basis to the contraction result. Can have zeros.
+    p
+        Left dual basis biorthonormal to ``q``.
+        Should be attached to ``ts[i]`` and not to ``ts[i + 1]``.
+    q
+        Right dual basis biorthonormal to ``p``.
+        Should be attached to ``ts[i + 1]`` and not to ``ts[i]``.
+    """
+
     s: npt.NDArray[Any]
     p: npt.NDArray[Any]
     q: npt.NDArray[Any]
+
+    @property
+    def rank(self) -> int:
+        """Number of nonzero weights."""
+        return int(np.count_nonzero(self.s > 0))
 
 
 _CHI_INF = 10**17
@@ -144,8 +165,8 @@ class _CanonicalMPS:
             suffix.append(np.einsum("aib,bc,ajc->ij", t.conj(), suffix[-1], v, optimize=True))
         return suffix
 
-    def projectors(self) -> list[_ProjectorResult]:
-        ret: list[_ProjectorResult] = []
+    def projectors(self) -> list[ProjectorResult]:
+        ret: list[ProjectorResult] = []
         # MEMO: No truncation required for T (only V)
         prefix = self._prefix()
         suffix = self._suffix()
@@ -154,14 +175,37 @@ class _CanonicalMPS:
             rank = iw.size
             p = suffix[self.n - lp].conj()[:, :rank] * iw
             q = prefix[lp][:, :rank] * iw
-            ret.append(_ProjectorResult(s[:rank], p, q))
+            ret.append(ProjectorResult(s[:rank], p, q))
         return ret
 
 
-def optimize(
-    ts: Sequence[npt.NDArray[Any]], chi: int | None = None
-) -> tuple[list[npt.NDArray[Any]], list[_ProjectorResult]]:
-    r"""Optimize MPS by SVD-compatible oblique projection.
+def _log_norm(ts: Sequence[npt.NDArray[Any]]) -> float | None:
+    work = np.eye(1)
+    lcum = 0.0
+    for t in ts:
+        work = np.einsum("cbj,ab,cai->ij", t.conj(), work, t, optimize=True)
+        norm = np.linalg.norm(work)
+        if norm == 0:
+            return None
+        work /= norm
+        lcum += math.log(norm)
+    fin = complex(np.trace(work))
+    assert fin.real > 0
+    assert math.isclose(abs(fin), fin.real)
+    lcum += math.log(fin.real)
+    return lcum / 2
+
+
+def _preprocess(ts: Sequence[npt.NDArray[Any]]) -> list[npt.NDArray[Any]]:
+    if (ln := _log_norm(ts)) is None:
+        return list(ts)
+    norms = np.asarray([np.linalg.norm(t) for t in ts])
+    co = stats.gmean(norms) / math.exp(ln / len(ts))
+    return [co / nt * t for nt, t in zip(norms.flat, ts, strict=True)]
+
+
+def projective_svd(ts: Sequence[npt.NDArray[Any]], chi: int | None = None) -> list[ProjectorResult]:
+    r"""Compute oblique projections that SVD-canonicalize the input MPS tensors.
 
     Parameters
     ----------
@@ -173,36 +217,22 @@ def optimize(
             - Tensors are indexed as ``ts[i][open, minus, plus]`` where ``open`` is the open leg, ``minus`` is the closed leg tied to ``ts[i - 1]``, and ``plus`` is tied to ``ts[i + 1]``. ``minus`` or ``plus`` are ignored in the edge tensors.
             - All the closed legs must have coherent dimensions.
     chi
-        The maximum bond dimension allowed. If `None`, treated as infinity.
+        The maximum bond dimension. If `None`, treated as infinity. See below for the details.
 
     Returns
     -------
-    compressed
-        The compressed MPS tensors.
-        Its closed bond dimensions are truncated to at most ``chi``.
-        Its open-leg dimensions are unchanged.
     projectors
-        Projector information for each closed leg: singular values ``s``, left/right dual basis ``p`` and ``q``.
-        ``compressed`` can be reconstructed by inserting ``p[:, :r] @ q[:, :r].T.conj()`` where the rank :math:`r`
-        is the number of nonzero elements in ``s``.
+        ``projectors[i]`` corresponds to the projection to be placed at the bond between ``ts[i]`` and ``ts[i + 1]``.
 
     Notes
     -----
-    The optimization is performed by SVD canonicalization.
+    When ``projectors[i..]`` is applied to the MPS and truncated up to bond dimension ``chi``, the result is SVD-canonicalized with the canonical center at the bond between ``ts[i]`` and ``ts[i + 1]``.
     """  # noqa: E501
-    ts_3 = _attach_dummy(ts)
+    ts_3 = _preprocess(_attach_dummy(ts))
     mps = _CanonicalMPS.from_ts(ts_3, chi)
-    chi = mps.chi
-    projectors: list[_ProjectorResult] = []
+    projectors: list[ProjectorResult] = []
     spq = mps.projectors()
     for s, p, q in spq:
         d, _ = p.shape
-        projectors.append(_ProjectorResult(np.pad(s, (0, d - s.size)), *projector.extend(p, q)))
-    dummy: npt.NDArray[Any] = np.eye(1)
-    ps = [*(val.p for val in spq), dummy]
-    qs = [dummy, *(val.q for val in spq)]
-    compressed = [
-        np.einsum("iab,aj,bk->ijk", t, q.conj(), p, optimize=True)[:, :chi, :chi]
-        for (t, p, q) in zip(ts_3, ps, qs, strict=True)
-    ]
-    return _detach_dummy(compressed), projectors
+        projectors.append(ProjectorResult(np.pad(s, (0, d - s.size)), *projector.extend(p, q)))
+    return projectors
