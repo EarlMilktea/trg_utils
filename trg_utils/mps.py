@@ -231,7 +231,6 @@ def projective_svd(ts: Sequence[npt.NDArray[Any]], chi: int | None = None) -> li
     """  # noqa: E501
     ts_3 = _preprocess(_attach_dummy(ts))
     mps = _CanonicalMPS.from_ts(ts_3, chi)
-    chi = mps.chi
     projectors: list[ProjectorResult] = []
     spq = mps.projectors()
     for s, p, q in spq:
