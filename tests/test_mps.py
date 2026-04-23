@@ -248,6 +248,21 @@ def test_rank() -> None:
     assert res.rank == 1
 
 
+@given(ts=conftest.random_mps(3))
+def test_preprocess(ts: list[npt.NDArray[np.complex128]]) -> None:
+    ts = mps._attach_dummy(ts)
+    orig = np.einsum("ila,jab,kbm->ijklm", *ts)
+    ts_ = mps._preprocess(ts)
+    if np.all(orig == 0):
+        for lhs, rhs in zip(ts_, ts, strict=True):
+            np.testing.assert_allclose(lhs, rhs)
+        return
+    assert np.linalg.norm(ts_[0]) == pytest.approx(np.linalg.norm(ts_[1]))
+    assert np.linalg.norm(ts_[1]) == pytest.approx(np.linalg.norm(ts_[2]))
+    cmp = np.einsum("ila,jab,kbm->ijklm", *ts_)
+    assert np.linalg.norm(cmp) == pytest.approx(1)
+
+
 class TestPSVD:
     def test_chi_ng(self) -> None:
         with pytest.raises(ValueError, match=r"positive"):

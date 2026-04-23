@@ -5,11 +5,13 @@ from __future__ import annotations
 import copy
 import dataclasses
 import itertools
+import math
 from collections.abc import Iterable, Sequence
 from typing import Any, NamedTuple, TypeVar
 
 import numpy as np
 import numpy.typing as npt
+from scipy import stats
 
 from trg_utils import decomp, projector
 
@@ -54,7 +56,7 @@ class ProjectorResult(NamedTuple):
     Attributes
     ----------
     s
-        Singular values obtained when canonical center is placed at the corresponding bond. Can contain zeros.
+        Relative contribution of each basis to the contraction result. Can have zeros.
     p
         Left dual basis biorthonormal to ``q``.
         Should be attached to ``ts[i]`` and not to ``ts[i + 1]``.
@@ -177,6 +179,26 @@ class _CanonicalMPS:
         return ret
 
 
+def _preprocess(ts: Sequence[npt.NDArray[Any]]) -> list[npt.NDArray[Any]]:
+    work = np.eye(1)
+    lcum = 0.0
+    for t in ts:
+        work = np.einsum("cbj,ab,cai->ij", t.conj(), work, t, optimize=True)
+        norm = np.linalg.norm(work)
+        if norm == 0:
+            return list(ts)
+        work /= norm
+        lcum += math.log(norm)
+    lcum += math.log(np.real(np.trace(work)))
+    lcum /= 2 * len(ts)
+    norms = np.asarray([np.linalg.norm(t) for t in ts])
+    co = stats.gmean(norms) / math.exp(lcum)
+    ret: list[npt.NDArray[Any]] = []
+    for nt, t in zip(norms.flat, ts, strict=True):
+        ret.append(co / nt * t)
+    return ret
+
+
 def projective_svd(ts: Sequence[npt.NDArray[Any]], chi: int | None = None) -> list[ProjectorResult]:
     r"""Compute oblique projections that SVD-canonicalize the input MPS tensors.
 
@@ -202,7 +224,7 @@ def projective_svd(ts: Sequence[npt.NDArray[Any]], chi: int | None = None) -> li
     When ``projectors[i..]`` is applied to the MPS, the result is SVD-canonicalized with the canonical center at the bond between ``ts[i]`` and ``ts[i + 1]``.
     ``projectors[(i + 1)..]`` can be truncated up to bond dimension ``chi`` without changing the final contraction result.
     """  # noqa: E501
-    ts_3 = _attach_dummy(ts)
+    ts_3 = _preprocess(_attach_dummy(ts))
     mps = _CanonicalMPS.from_ts(ts_3, chi)
     chi = mps.chi
     projectors: list[ProjectorResult] = []
