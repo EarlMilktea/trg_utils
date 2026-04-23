@@ -179,24 +179,29 @@ class _CanonicalMPS:
         return ret
 
 
-def _preprocess(ts: Sequence[npt.NDArray[Any]]) -> list[npt.NDArray[Any]]:
+def _log_norm(ts: Sequence[npt.NDArray[Any]]) -> float | None:
     work = np.eye(1)
     lcum = 0.0
     for t in ts:
         work = np.einsum("cbj,ab,cai->ij", t.conj(), work, t, optimize=True)
         norm = np.linalg.norm(work)
         if norm == 0:
-            return list(ts)
+            return None
         work /= norm
         lcum += math.log(norm)
-    lcum += math.log(np.real(np.trace(work)))
-    lcum /= 2 * len(ts)
+    fin = complex(np.trace(work))
+    assert fin.real > 0
+    assert math.isclose(abs(fin), fin.real)
+    lcum += math.log(fin.real)
+    return lcum / 2
+
+
+def _preprocess(ts: Sequence[npt.NDArray[Any]]) -> list[npt.NDArray[Any]]:
+    if (ln := _log_norm(ts)) is None:
+        return list(ts)
     norms = np.asarray([np.linalg.norm(t) for t in ts])
-    co = stats.gmean(norms) / math.exp(lcum)
-    ret: list[npt.NDArray[Any]] = []
-    for nt, t in zip(norms.flat, ts, strict=True):
-        ret.append(co / nt * t)
-    return ret
+    co = stats.gmean(norms) / math.exp(ln / len(ts))
+    return [co / nt * t for nt, t in zip(norms.flat, ts, strict=True)]
 
 
 def projective_svd(ts: Sequence[npt.NDArray[Any]], chi: int | None = None) -> list[ProjectorResult]:
