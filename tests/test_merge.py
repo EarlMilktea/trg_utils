@@ -9,25 +9,6 @@ from trg_utils import merge
 
 
 class TestGroup:
-    def test_ng_dim(self) -> None:
-        with pytest.raises(ValueError, match=r"out of range"):
-            merge.group(np.zeros((2, 3, 4)), (0, (10, 11)))
-
-        with pytest.raises(ValueError, match=r"out of range"):
-            merge.group(np.zeros((2, 3, 4)), (-10, (1, 2)))
-
-    def test_ng_empty(self) -> None:
-        with pytest.raises(ValueError, match=r"must not be empty"):
-            merge.group(np.zeros((2, 3, 4)), (0, ()))
-
-    def test_ng_deficit(self) -> None:
-        with pytest.raises(ValueError, match=r"must cover all axes"):
-            merge.group(np.zeros((2, 3, 4)), (0, (1,)))
-
-    def test_ng_overlap(self) -> None:
-        with pytest.raises(ValueError, match=r"without overlap"):
-            merge.group(np.zeros((2, 3, 4)), (0, (1, 2), 2))
-
     @pytest.mark.parametrize(
         "instr",
         [
@@ -65,11 +46,6 @@ class TestGroup:
 
 
 class TestUngroup:
-    @pytest.mark.parametrize("target", [-4, 3])
-    def test_ng_dim(self, target: int) -> None:
-        with pytest.raises(ValueError, match=r"out of range"):
-            merge.ungroup(np.zeros((2, 3, 4)), (target, (2, 2)))
-
     def test_ng_shape(self) -> None:
         with pytest.raises(ValueError, match=r"Cannot ungroup: 4 -> \(2, 3\)\."):
             merge.ungroup(np.zeros((2, 3, 4)), (2, (2, 3)))

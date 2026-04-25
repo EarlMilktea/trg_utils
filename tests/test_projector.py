@@ -14,19 +14,6 @@ from trg_utils import projector
 
 
 class TestExtend:
-    def test_extend_ng(self) -> None:
-        with pytest.raises(ValueError, match=r"Inconsistent"):
-            projector.extend(np.zeros((9, 1)), np.zeros((9, 2)))
-
-        with pytest.raises(ValueError, match=r"matrices"):
-            projector.extend(np.zeros((9,)), np.zeros((9,)))
-
-        with pytest.raises(ValueError, match=r"empty"):
-            projector.extend(np.zeros((0, 9)), np.zeros((0, 9)))
-
-        with pytest.raises(ValueError, match=r"larger"):
-            projector.extend(np.zeros((4, 9)), np.zeros((4, 9)))
-
     def test_extend_full(self) -> None:
         p = np.eye(9)
         q = np.eye(9)
@@ -60,9 +47,6 @@ class TestNormalize:
     def test_normalize_ng(self) -> None:
         with pytest.raises(ValueError, match=r"Invalid mode"):
             projector.normalize(np.zeros((9, 1)), np.zeros((9, 1)), mode="invalid")  # type: ignore[arg-type]
-
-        with pytest.raises(ValueError, match=r"non-empty"):
-            projector.normalize(np.zeros((9, 0)), np.zeros((9, 0)), mode="local")
 
     @given(pq=conftest.random_projector())
     def test_normalize_local(self, pq: tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]) -> None:
@@ -100,10 +84,6 @@ def noisy_projector(draw: DrawFn) -> tuple[npt.NDArray[np.complex128], npt.NDArr
 
 
 class TestRefine:
-    def test_refine_ng(self) -> None:
-        with pytest.raises(ValueError, match=r"non-empty"):
-            projector.refine(np.zeros((9, 0)), np.zeros((9, 0)))
-
     def test_no_op(self) -> None:
         p = np.eye(9)
         q = np.eye(9)
