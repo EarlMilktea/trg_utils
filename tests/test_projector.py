@@ -13,6 +13,7 @@ from hypothesis.strategies import DrawFn, SearchStrategy
 
 from tests import conftest
 from trg_utils import merge, projector
+from trg_utils.projector import _ToMatrix
 
 
 def pdot(lhs: npt.NDArray[Any], rhs: npt.NDArray[Any]) -> npt.NDArray[Any]:
@@ -39,6 +40,15 @@ def _pq(
         return p, q
 
     return _inner()
+
+
+class TestToMatrix:
+    def test_enc_dec(self) -> None:
+        t = np.arange(2 * 3 * 4).reshape(2, 3, 4)
+        m, enc = _ToMatrix.encode(t)
+        assert m.shape == (6, 4)
+        t_ = enc.decode(m)
+        np.testing.assert_allclose(t_, t)
 
 
 class TestExtend:
