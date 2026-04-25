@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 import operator
 import typing
 from collections.abc import Iterable, Iterator, Sequence
@@ -77,16 +76,16 @@ def assert_pshapes(p: tuple[int, ...], q: tuple[int, ...], *, allow_empty: bool 
     if p != q:
         msg = "Inconsistent shapes."
         raise ValueError(msg)
-    if len(p) <= 1:
-        msg = "Must have at least two legs."
+    if len(p) != 2:
+        msg = "Must be matrices."
         raise ValueError(msg)
-    *head, tail = p
-    if math.prod(head) == 0:
-        msg = "All the non-projected legs must be non-empty."
+    orig, trunc = p
+    if orig == 0:
+        msg = "Non-projected dimension (first) must be non-empty."
         raise ValueError(msg)
-    if math.prod(head) < tail:
-        msg = "Projected dimension (last) must be smaller than the original (rest)."
+    if orig < trunc:
+        msg = "Projected dimension (last) is larger than the original (first)."
         raise ValueError(msg)
-    if not allow_empty and tail == 0:
+    if not allow_empty and trunc == 0:
         msg = "Projected dimension must be non-empty."
         raise ValueError(msg)
