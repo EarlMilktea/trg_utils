@@ -2,35 +2,15 @@ from __future__ import annotations
 
 from typing import Literal
 
-import hypothesis.extra.numpy as hnp
 import hypothesis.strategies as st
 import numpy as np
 import numpy.typing as npt
 import pytest
 from hypothesis import given, settings
-from hypothesis.strategies import DrawFn, SearchStrategy
+from hypothesis.strategies import DrawFn
 
 from tests import conftest
 from trg_utils import projector
-
-
-def _pq(noise: float = 0.0) -> SearchStrategy[tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]]:
-
-    @st.composite
-    def _inner(draw: DrawFn) -> tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]:
-        (d,) = draw(hnp.array_shapes(min_dims=1, max_dims=1))
-        x = draw(conftest.almost_diagonal(d))
-        r = draw(st.integers(1, d))
-        ix = np.linalg.inv(x)
-        p = x[:, :r]
-        q = ix.T.conj()[:, :r].astype(np.complex128, copy=False)
-        assert p.shape == (d, r)
-        assert q.shape == (d, r)
-        p += draw(conftest.shaped_f128(p.shape)) * noise
-        q += draw(conftest.shaped_f128(q.shape)) * noise
-        return p, q
-
-    return _inner()
 
 
 class TestExtend:
@@ -61,7 +41,7 @@ class TestExtend:
         np.testing.assert_allclose(pex, np.eye(9))
         np.testing.assert_allclose(qex, np.eye(9))
 
-    @given(pq=_pq())
+    @given(pq=conftest.random_projector())
     def test_extend(self, pq: tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]) -> None:
         p, q = pq
         d, r = p.shape
@@ -84,7 +64,7 @@ class TestNormalize:
         with pytest.raises(ValueError, match=r"non-empty"):
             projector.normalize(np.zeros((9, 0)), np.zeros((9, 0)), mode="local")
 
-    @given(pq=_pq())
+    @given(pq=conftest.random_projector())
     def test_normalize_local(self, pq: tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]) -> None:
         # MEMO: Invalid input for dirty testing
         p, q = pq
@@ -94,7 +74,7 @@ class TestNormalize:
         for i in range(p.shape[1]):
             assert np.linalg.norm(p[:, i]) == pytest.approx(np.linalg.norm(q[:, i]))
 
-    @given(pq=_pq())
+    @given(pq=conftest.random_projector())
     def test_normalize_global(self, pq: tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]) -> None:
         # MEMO: Invalid input for dirty testing
         p, q = pq
@@ -111,6 +91,14 @@ class TestNormalize:
             projector.normalize(p, q, mode=mode)
 
 
+@st.composite
+def noisy_projector(draw: DrawFn) -> tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]:
+    p, q = draw(conftest.random_projector())
+    p += 1e-3 * draw(conftest.shaped_f128(p.shape))
+    q += 1e-3 * draw(conftest.shaped_f128(q.shape))
+    return p, q
+
+
 class TestRefine:
     def test_refine_ng(self) -> None:
         with pytest.raises(ValueError, match=r"non-empty"):
@@ -125,7 +113,7 @@ class TestRefine:
 
     @pytest.mark.filterwarnings("ignore:Generating overly large repr")
     @settings(deadline=None)
-    @given(pq=_pq(1e-3))
+    @given(pq=noisy_projector())
     def test_refine(self, pq: tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]) -> None:
         p, q = pq
         _, chi = p.shape

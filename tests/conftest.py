@@ -39,3 +39,20 @@ def random_mps(n: int) -> SearchStrategy[list[npt.NDArray[np.complex128]]]:
         return ts
 
     return _inner()
+
+
+def random_projector() -> SearchStrategy[tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]]:
+
+    @st.composite
+    def _inner(draw: DrawFn) -> tuple[npt.NDArray[np.complex128], npt.NDArray[np.complex128]]:
+        (d,) = draw(hnp.array_shapes(min_dims=1, max_dims=1))
+        x = draw(almost_diagonal(d))
+        r = draw(st.integers(1, d))
+        ix = np.linalg.inv(x)
+        p = x[:, :r]
+        q = ix.T.conj()[:, :r].astype(np.complex128, copy=False)
+        assert p.shape == (d, r)
+        assert q.shape == (d, r)
+        return p, q
+
+    return _inner()
