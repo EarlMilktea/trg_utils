@@ -1,4 +1,9 @@
-"""Grouping and ungrouping of array axes."""
+"""
+Generalized Reshape (`trg_utils.merge`)
+=======================================
+
+Grouping and ungrouping of array axes.
+"""  # noqa: D205, D400
 
 from __future__ import annotations
 
@@ -38,7 +43,7 @@ def group(arr: npt.ArrayLike, inds: Sequence[SupportsIndex | Sequence[SupportsIn
 
     Returns
     -------
-    `numpy.ndarray`
+    :
         Array with axes permuted and optionally merged as specified by ``inds``.
 
     Notes
@@ -94,7 +99,7 @@ def ungroup(arr: npt.ArrayLike, *instr: tuple[SupportsIndex, Sequence[SupportsIn
 
     Returns
     -------
-    `numpy.ndarray`
+    :
         Array with each target axis replaced by the corresponding ``split`` shape.
 
     Notes

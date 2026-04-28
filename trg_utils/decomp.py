@@ -1,4 +1,9 @@
-"""Tensor decompositions."""
+"""
+Tensor Decomposition (`trg_utils.decomp`)
+=========================================
+
+Tensor SVD and QR.
+"""  # noqa: D205, D400
 
 from __future__ import annotations
 

@@ -1,4 +1,19 @@
-"""MPS optimization."""
+"""
+MPS Manipulation (`trg_utils.mps`)
+==================================
+
+MPS-related utilities.
+
+Conventions
+-----------
+Throughout this module, these conventions are assumed for the MPS tensors:
+
+- Tensors are given as a sequence of `numpy.ndarray` objects.
+- At least two tensors are required.
+- ``ts[i].ndim`` must be ``2`` for ``i == 0`` and ``i == len(ts) - 1``, and must be ``3`` otherwise.
+- Tensors are indexed as ``ts[i][open, minus, plus]`` where ``open`` is the open leg, ``minus`` is the closed leg tied to ``ts[i - 1]``, and ``plus`` is tied to ``ts[i + 1]``. ``minus`` or ``plus`` are ignored in the edge tensors.
+- All the closed legs must have coherent dimensions.
+"""  # noqa: D205, D400, E501
 
 from __future__ import annotations
 
@@ -51,7 +66,10 @@ def _detach_dummy(ts: Iterable[npt.NDArray[_T]]) -> list[npt.NDArray[_T]]:
 
 
 class ProjectorResult(NamedTuple):
-    """Projector dual basis and associated weights."""
+    """Projector dual basis and associated weights.
+
+    See `trg_utils.projector` for the details of the dual basis.
+    """
 
     s: npt.NDArray[Any]  #: Relative contribution of each basis to the contraction result. Can have zeros.
     p: npt.NDArray[
@@ -202,19 +220,15 @@ def projective_svd(ts: Sequence[npt.NDArray[Any]], chi: int | None = None) -> li
     Parameters
     ----------
     ts
-        The input MPS tensors.
-            - Tensors are given as a sequence of `numpy.ndarray` objects.
-            - At least two tensors are required.
-            - ``ts[i].ndim`` must be ``2`` for ``i == 0`` and ``i == len(ts) - 1``, and must be ``3`` otherwise.
-            - Tensors are indexed as ``ts[i][open, minus, plus]`` where ``open`` is the open leg, ``minus`` is the closed leg tied to ``ts[i - 1]``, and ``plus`` is tied to ``ts[i + 1]``. ``minus`` or ``plus`` are ignored in the edge tensors.
-            - All the closed legs must have coherent dimensions.
+        The input MPS tensors. See the module docstring for the conventions.
     chi
         The maximum bond dimension. If `None`, treated as infinity. See below for the details.
 
     Returns
     -------
-    projectors
-        ``projectors[i]`` corresponds to the projection to be placed at the bond between ``ts[i]`` and ``ts[i + 1]``.
+    :
+        List of `ProjectorResult` objects.
+        i-th element corresponds to the projection to be placed at the bond between ``ts[i]`` and ``ts[i + 1]``.
 
     Notes
     -----
