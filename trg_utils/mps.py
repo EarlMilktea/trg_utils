@@ -152,7 +152,7 @@ class _CanonicalMPS:
         rank = min(rank_abs, rank_rel)
         return np.asarray(1 / np.sqrt(s[:rank]))
 
-    def _prefix(self) -> list[npt.NDArray[Any]]:
+    def _prefix_tu(self) -> list[npt.NDArray[Any]]:
         prefix: list[npt.NDArray[Any]] = [np.eye(1)]
         for t, u in zip(self.ts, self.us, strict=False):
             prefix.append(np.einsum("abi,bc,acj->ij", t.conj(), prefix[-1], u, optimize=True))
@@ -160,7 +160,7 @@ class _CanonicalMPS:
             prefix[i] = prefix[i] @ g  # noqa: PLR6104 (shape change required)
         return prefix
 
-    def _suffix(self) -> list[npt.NDArray[Any]]:
+    def _suffix_tv(self) -> list[npt.NDArray[Any]]:
         suffix: list[npt.NDArray[Any]] = [np.eye(1)]
         for t, v in zip(reversed(self.ts), reversed(self.vs), strict=False):
             suffix.append(np.einsum("aib,bc,ajc->ij", t.conj(), suffix[-1], v, optimize=True))
@@ -169,8 +169,8 @@ class _CanonicalMPS:
     def projectors(self) -> list[ProjectorResult]:
         ret: list[ProjectorResult] = []
         # MEMO: No truncation required for T (only V)
-        prefix = self._prefix()
-        suffix = self._suffix()
+        prefix = self._prefix_tu()
+        suffix = self._suffix_tv()
         for lp, s in enumerate(self.ss, start=1):
             iw = self._safe_isqrt(s)
             rank = iw.size
