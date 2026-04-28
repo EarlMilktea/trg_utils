@@ -4,14 +4,22 @@ trg_utils
 .. automodule:: trg_utils
    :members:
 
-.. automodule:: trg_utils.merge
-   :members:
+.. toctree::
+   :hidden:
+   :maxdepth: 1
 
-.. automodule:: trg_utils.decomp
-   :members:
+   merge
+   decomp
+   projector
+   mps
 
-.. automodule:: trg_utils.projector
-   :members:
+Provided Submodules
+===================
 
-.. automodule:: trg_utils.mps
-   :members:
+.. autosummary::
+   :signatures: none
+
+   merge
+   decomp
+   projector
+   mps
