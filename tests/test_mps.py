@@ -272,3 +272,77 @@ class TestPSVD:
             assert q.shape == (d, d)
             np.testing.assert_allclose(q.T.conj() @ p, np.eye(d), atol=1e-4)
             np.testing.assert_allclose(p @ q.T.conj(), np.eye(d), atol=1e-4)
+
+
+class TestSqueeze:
+    @given(ts=conftest.random_mps(3))
+    def test_relative_prefix(self, ts: list[npt.NDArray[np.complex128]]) -> None:
+        ts = mps._attach_dummy(ts)
+        d0, d1, d2 = (t.shape[0] for t in ts)
+        res0, res1, res2 = mps._relative_prefix(ts)
+
+        erank, cum = res0
+        assert erank == d0
+        np.testing.assert_allclose(cum, cum.T.conj())
+
+        erank, cum = res1
+        assert erank == d0 * d1
+        np.testing.assert_allclose(cum, cum.T.conj())
+
+        erank, cum = res2
+        assert erank == d0 * d1 * d2
+        np.testing.assert_allclose(cum, cum.T.conj())
+
+    @given(ts=conftest.random_mps(3))
+    def test_relative_suffix(self, ts: list[npt.NDArray[np.complex128]]) -> None:
+        ts = mps._attach_dummy(ts)
+        d0, d1, d2 = (t.shape[0] for t in ts)
+        res0, res1, res2 = mps._relative_suffix(ts)
+
+        erank, cum = res0
+        assert erank == d2
+        np.testing.assert_allclose(cum, cum.T.conj())
+
+        erank, cum = res1
+        assert erank == d2 * d1
+        np.testing.assert_allclose(cum, cum.T.conj())
+
+        erank, cum = res2
+        assert erank == d2 * d1 * d0
+        np.testing.assert_allclose(cum, cum.T.conj())
+
+    @given(ts=conftest.random_mps(3))
+    def test_prefix(self, ts: list[npt.NDArray[np.complex128]]) -> None:
+        t0, t1, _ = ts
+        spq = mps.prefix_squeeze(ts)
+        assert len(spq) == 2
+
+        s, p, q = spq[0].truncated()
+        assert s.size <= t0.shape[0]
+        ref = t0
+        cmp = np.einsum("ia,ab,jb->ij", t0, p, q.conj(), optimize=True)
+        np.testing.assert_allclose(cmp, ref, atol=1e-8)
+
+        s, p, q = spq[1].truncated()
+        assert s.size <= t0.shape[0] * t1.shape[0]
+        ref = np.einsum("ia,jak->ijk", t0, t1)
+        cmp = np.einsum("ia,jab,bc,kc->ijk", t0, t1, p, q.conj(), optimize=True)
+        np.testing.assert_allclose(cmp, ref, atol=1e-8)
+
+    @given(ts=conftest.random_mps(3))
+    def test_suffix(self, ts: list[npt.NDArray[np.complex128]]) -> None:
+        _, t1, t2 = ts
+        spq = mps.suffix_squeeze(ts)
+        assert len(spq) == 2
+
+        s, p, q = spq[1].truncated()
+        assert s.size <= t2.shape[0]
+        ref = t2
+        cmp = np.einsum("ja,ba,ib->ij", p, q.conj(), t2, optimize=True)
+        np.testing.assert_allclose(cmp, ref, atol=1e-8)
+
+        s, p, q = spq[0].truncated()
+        assert s.size <= t1.shape[0] * t2.shape[0]
+        ref = np.einsum("ika,ja->ijk", t1, t2)
+        cmp = np.einsum("ka,ba,ibc,jc->ijk", p, q.conj(), t1, t2, optimize=True)
+        np.testing.assert_allclose(cmp, ref, atol=1e-8)
