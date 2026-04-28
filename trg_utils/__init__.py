@@ -4,3 +4,7 @@ This package provides various utilities for tensor manipulations, which are slig
 """
 
 from __future__ import annotations
+
+from trg_utils import decomp, merge, mps, projector
+
+__all__ = ["decomp", "merge", "mps", "projector"]
