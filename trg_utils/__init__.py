@@ -14,10 +14,3 @@ Oblique projector
 """
 
 from __future__ import annotations
-
-from trg_utils.decomp import hosvd, tqr, tsvd
-from trg_utils.merge import group, ungroup
-from trg_utils.mps import projective_svd
-from trg_utils.projector import extend, normalize, refine
-
-__all__ = ["extend", "group", "hosvd", "normalize", "projective_svd", "refine", "tqr", "tsvd", "ungroup"]
