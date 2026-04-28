@@ -21,7 +21,7 @@ import copy
 import dataclasses
 import itertools
 import math
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from typing import Any, NamedTuple, TypeVar
 
 import numpy as np
@@ -56,19 +56,16 @@ def _attach_dummy(ts: Sequence[npt.NDArray[_T]]) -> list[npt.NDArray[_T]]:
     return ret
 
 
-def _detach_dummy(ts: Iterable[npt.NDArray[_T]]) -> list[npt.NDArray[_T]]:
-    head, *mid, tail = ts
-    return [
-        head[:, 0, :],
-        *mid,
-        tail[:, :, 0],
-    ]
-
-
 class ProjectorResult(NamedTuple):
     """Projector dual basis and associated weights.
 
     See `trg_utils.projector` for the details of the dual basis.
+
+    Notes
+    -----
+    The meaning of ``s`` depends on the context, but it is generally guaranteed that the "perpendicular complement"
+    projection defined by the sum of ``p[:, k] @ q[:, k].T.conj()`` taken over ``s[k] == 0`` has no contribution
+    to the contraction result.
     """
 
     s: npt.NDArray[Any]  #: Relative contribution of each basis to the contraction result. Can have zeros.
@@ -83,6 +80,11 @@ class ProjectorResult(NamedTuple):
     def rank(self) -> int:
         """Number of nonzero weights."""
         return int(np.count_nonzero(self.s > 0))
+
+    def truncated(self) -> ProjectorResult:
+        """Return a new instance with zero-weight components removed."""  # noqa: DOC201
+        rank = self.rank
+        return ProjectorResult(self.s[:rank], self.p[:, :rank], self.q[:, :rank])
 
 
 _CHI_INF = 10**17
@@ -161,7 +163,7 @@ class _CanonicalMPS:
         rank = min(rank_abs, rank_rel)
         return np.asarray(1 / np.sqrt(s[:rank]))
 
-    def _prefix(self) -> list[npt.NDArray[Any]]:
+    def _prefix_tu(self) -> list[npt.NDArray[Any]]:
         prefix: list[npt.NDArray[Any]] = [np.eye(1)]
         for t, u in zip(self.ts, self.us, strict=False):
             prefix.append(np.einsum("abi,bc,acj->ij", t.conj(), prefix[-1], u, optimize=True))
@@ -169,7 +171,7 @@ class _CanonicalMPS:
             prefix[i] = prefix[i] @ g  # noqa: PLR6104 (shape change required)
         return prefix
 
-    def _suffix(self) -> list[npt.NDArray[Any]]:
+    def _suffix_tv(self) -> list[npt.NDArray[Any]]:
         suffix: list[npt.NDArray[Any]] = [np.eye(1)]
         for t, v in zip(reversed(self.ts), reversed(self.vs), strict=False):
             suffix.append(np.einsum("aib,bc,ajc->ij", t.conj(), suffix[-1], v, optimize=True))
@@ -178,8 +180,8 @@ class _CanonicalMPS:
     def projectors(self) -> list[ProjectorResult]:
         ret: list[ProjectorResult] = []
         # MEMO: No truncation required for T (only V)
-        prefix = self._prefix()
-        suffix = self._suffix()
+        prefix = self._prefix_tu()
+        suffix = self._suffix_tv()
         for lp, s in enumerate(self.ss, start=1):
             iw = self._safe_isqrt(s)
             rank = iw.size
@@ -242,3 +244,92 @@ def projective_svd(ts: Sequence[npt.NDArray[Any]], chi: int | None = None) -> li
         d, _ = p.shape
         projectors.append(ProjectorResult(np.pad(s, (0, d - s.size)), *projector.extend(p, q)))
     return projectors
+
+
+def _relative_prefix(ts: Sequence[npt.NDArray[Any]]) -> list[tuple[int, npt.NDArray[Any]]]:
+    work: npt.NDArray[Any] = np.eye(1)
+    erank = 1
+    ret: list[tuple[int, npt.NDArray[Any]]] = []
+    for t in ts:
+        erank *= t.shape[0]
+        work = np.einsum("abi,bc,acj->ij", t.conj(), work, t, optimize=True)
+        nw = np.linalg.norm(work)
+        if nw != 0:
+            work /= nw
+        ret.append((erank, work))
+    return ret
+
+
+def _relative_suffix(ts: Sequence[npt.NDArray[Any]]) -> list[tuple[int, npt.NDArray[Any]]]:
+    work = np.eye(1)
+    erank = 1
+    ret: list[tuple[int, npt.NDArray[Any]]] = []
+    for t in reversed(ts):
+        erank *= t.shape[0]
+        work = np.einsum("aib,bc,ajc->ij", t.conj(), work, t, optimize=True)
+        nw = np.linalg.norm(work)
+        if nw != 0:
+            work /= nw
+        ret.append((erank, work))
+    return ret
+
+
+def prefix_squeeze(ts: Sequence[npt.NDArray[Any]]) -> list[ProjectorResult]:
+    r"""Compute symmetric projections that exactly preserve all the prefix MPS contractions.
+
+    Parameters
+    ----------
+    ts
+        The input MPS tensors. See `projective_svd` for the details.
+
+    Returns
+    -------
+    :
+        List of `ProjectorResult` objects.
+        i-th element corresponds to the projection to be placed at the bond between ``ts[i]`` and ``ts[i + 1]``.
+
+    Notes
+    -----
+    For each ``i``, prefix MPS defined by ``ts[:i + 1]`` is exactly preserved after applying the projection
+    to the bond between ``ts[i]`` and ``ts[i + 1]``.
+    """
+    ts = _attach_dummy(ts)
+    ret: list[ProjectorResult] = []
+    for erank, res in _relative_prefix(ts)[:-1]:
+        # MEMO: should use U (bug in numpy)
+        u, ss, _ = np.linalg.svd(res, hermitian=True)
+        ss[erank:] = 0
+        s = np.sqrt(ss)
+        ret.append(ProjectorResult(s, u, u))
+    return ret
+
+
+def suffix_squeeze(ts: Sequence[npt.NDArray[Any]]) -> list[ProjectorResult]:
+    r"""Compute symmetric projections that exactly preserve all the suffix MPS contractions.
+
+    Parameters
+    ----------
+    ts
+        The input MPS tensors. See `projective_svd` for the details.
+
+    Returns
+    -------
+    :
+        List of `ProjectorResult` objects.
+        i-th element corresponds to the projection to be placed at the bond between ``ts[i]`` and ``ts[i + 1]``.
+
+    Notes
+    -----
+    For each ``i``, suffix MPS defined by ``ts[i + 1:]`` is exactly preserved after applying the projection
+    to the bond between ``ts[i]`` and ``ts[i + 1]``.
+    """
+    ts = _attach_dummy(ts)
+    ret: list[ProjectorResult] = []
+    for erank, res in _relative_suffix(ts)[:-1]:
+        # MEMO: should use U (bug in numpy)
+        u, ss, _ = np.linalg.svd(res, hermitian=True)
+        ss[erank:] = 0
+        s = np.sqrt(ss)
+        ret.append(ProjectorResult(s, u.conj(), u.conj()))
+    ret.reverse()
+    return ret
