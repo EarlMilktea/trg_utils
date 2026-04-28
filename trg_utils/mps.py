@@ -51,23 +51,15 @@ def _detach_dummy(ts: Iterable[npt.NDArray[_T]]) -> list[npt.NDArray[_T]]:
 
 
 class ProjectorResult(NamedTuple):
-    """Projector dual basis and associated weights.
+    """Projector dual basis and associated weights."""
 
-    Attributes
-    ----------
-    s
-        Relative contribution of each basis to the contraction result. Can have zeros.
-    p
-        Left dual basis biorthonormal to ``q``.
-        Should be attached to ``ts[i]`` and not to ``ts[i + 1]``.
-    q
-        Right dual basis biorthonormal to ``p``.
-        Should be attached to ``ts[i + 1]`` and not to ``ts[i]``.
-    """
-
-    s: npt.NDArray[Any]
-    p: npt.NDArray[Any]
-    q: npt.NDArray[Any]
+    s: npt.NDArray[Any]  #: Relative contribution of each basis to the contraction result. Can have zeros.
+    p: npt.NDArray[
+        Any
+    ]  #: Left dual basis biorthonormal to ``q``. Should be attached to ``ts[i]`` and not to ``ts[i + 1]``.
+    q: npt.NDArray[
+        Any
+    ]  #: Right dual basis biorthonormal to ``p``. Should be attached to ``ts[i + 1]`` and not to ``ts[i]``.
 
     @property
     def rank(self) -> int:
