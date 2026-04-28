@@ -21,7 +21,7 @@ import copy
 import dataclasses
 import itertools
 import math
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from typing import Any, NamedTuple, TypeVar
 
 import numpy as np
@@ -54,15 +54,6 @@ def _attach_dummy(ts: Sequence[npt.NDArray[_T]]) -> list[npt.NDArray[_T]]:
             msg = "Inconsistent closed bond dimensions."
             raise ValueError(msg)
     return ret
-
-
-def _detach_dummy(ts: Iterable[npt.NDArray[_T]]) -> list[npt.NDArray[_T]]:
-    head, *mid, tail = ts
-    return [
-        head[:, 0, :],
-        *mid,
-        tail[:, :, 0],
-    ]
 
 
 class ProjectorResult(NamedTuple):

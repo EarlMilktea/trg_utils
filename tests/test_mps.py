@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import math
 from typing import Any
 
@@ -13,14 +12,6 @@ from hypothesis import strategies as st
 from tests import conftest
 from trg_utils import mps
 from trg_utils.mps import ProjectorResult, _CanonicalMPS
-
-
-@given(ts=conftest.random_mps(4))
-def test_ad(ts: list[npt.NDArray[np.complex128]]) -> None:
-    orig = copy.deepcopy(ts)
-    res = mps._detach_dummy(mps._attach_dummy(ts))
-    for t1, t2 in zip(orig, res, strict=True):
-        np.testing.assert_allclose(t1, t2)
 
 
 def test_attach_ng() -> None:
