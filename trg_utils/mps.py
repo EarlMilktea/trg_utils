@@ -60,6 +60,12 @@ class ProjectorResult(NamedTuple):
     """Projector dual basis and associated weights.
 
     See `trg_utils.projector` for the details of the dual basis.
+
+    Notes
+    -----
+    The meaning of ``s`` depends on the context, but it is generally guaranteed that the "perpendicular complement"
+    projection defined by the sum of ``p[:, k] @ q[:, k].T.conj()`` taken over ``s[k] == 0`` has no contribution
+    to the contraction result.
     """
 
     s: npt.NDArray[Any]  #: Relative contribution of each basis to the contraction result. Can have zeros.
@@ -74,6 +80,11 @@ class ProjectorResult(NamedTuple):
     def rank(self) -> int:
         """Number of nonzero weights."""
         return int(np.count_nonzero(self.s > 0))
+
+    def truncated(self) -> ProjectorResult:
+        """Return a new instance with zero-weight components removed."""  # noqa: DOC201
+        rank = self.rank
+        return ProjectorResult(self.s[:rank], self.p[:, :rank], self.q[:, :rank])
 
 
 _CHI_INF = 10**17
@@ -233,3 +244,92 @@ def projective_svd(ts: Sequence[npt.NDArray[Any]], chi: int | None = None) -> li
         d, _ = p.shape
         projectors.append(ProjectorResult(np.pad(s, (0, d - s.size)), *projector.extend(p, q)))
     return projectors
+
+
+def _relative_prefix(ts: Sequence[npt.NDArray[Any]]) -> list[tuple[int, npt.NDArray[Any]]]:
+    work: npt.NDArray[Any] = np.eye(1)
+    erank = 1
+    ret: list[tuple[int, npt.NDArray[Any]]] = []
+    for t in ts:
+        erank *= t.shape[0]
+        work = np.einsum("abi,bc,acj->ij", t.conj(), work, t, optimize=True)
+        nw = np.linalg.norm(work)
+        if nw != 0:
+            work /= nw
+        ret.append((erank, work))
+    return ret
+
+
+def _relative_suffix(ts: Sequence[npt.NDArray[Any]]) -> list[tuple[int, npt.NDArray[Any]]]:
+    work = np.eye(1)
+    erank = 1
+    ret: list[tuple[int, npt.NDArray[Any]]] = []
+    for t in reversed(ts):
+        erank *= t.shape[0]
+        work = np.einsum("aib,bc,ajc->ij", t.conj(), work, t, optimize=True)
+        nw = np.linalg.norm(work)
+        if nw != 0:
+            work /= nw
+        ret.append((erank, work))
+    return ret
+
+
+def prefix_squeeze(ts: Sequence[npt.NDArray[Any]]) -> list[ProjectorResult]:
+    r"""Compute symmetric projections that exactly preserve all the prefix MPS contractions.
+
+    Parameters
+    ----------
+    ts
+        The input MPS tensors. See `projective_svd` for the details.
+
+    Returns
+    -------
+    :
+        List of `ProjectorResult` objects.
+        i-th element corresponds to the projection to be placed at the bond between ``ts[i]`` and ``ts[i + 1]``.
+
+    Notes
+    -----
+    For each ``i``, prefix MPS defined by ``ts[:i + 1]`` is exactly preserved after applying the projection
+    to the bond between ``ts[i]`` and ``ts[i + 1]``.
+    """
+    ts = _attach_dummy(ts)
+    ret: list[ProjectorResult] = []
+    for erank, res in _relative_prefix(ts)[:-1]:
+        # MEMO: should use U (bug in numpy)
+        u, ss, _ = np.linalg.svd(res, hermitian=True)
+        ss[erank:] = 0
+        s = np.sqrt(ss)
+        ret.append(ProjectorResult(s, u, u))
+    return ret
+
+
+def suffix_squeeze(ts: Sequence[npt.NDArray[Any]]) -> list[ProjectorResult]:
+    r"""Compute symmetric projections that exactly preserve all the suffix MPS contractions.
+
+    Parameters
+    ----------
+    ts
+        The input MPS tensors. See `projective_svd` for the details.
+
+    Returns
+    -------
+    :
+        List of `ProjectorResult` objects.
+        i-th element corresponds to the projection to be placed at the bond between ``ts[i]`` and ``ts[i + 1]``.
+
+    Notes
+    -----
+    For each ``i``, suffix MPS defined by ``ts[i + 1:]`` is exactly preserved after applying the projection
+    to the bond between ``ts[i]`` and ``ts[i + 1]``.
+    """
+    ts = _attach_dummy(ts)
+    ret: list[ProjectorResult] = []
+    for erank, res in _relative_suffix(ts)[:-1]:
+        # MEMO: should use U (bug in numpy)
+        u, ss, _ = np.linalg.svd(res, hermitian=True)
+        ss[erank:] = 0
+        s = np.sqrt(ss)
+        ret.append(ProjectorResult(s, u.conj(), u.conj()))
+    ret.reverse()
+    return ret
